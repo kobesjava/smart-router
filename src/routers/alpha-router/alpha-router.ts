@@ -100,10 +100,7 @@ import { BestSwapRoute, getBestSwapRoute } from './functions/best-swap-route';
 import { calculateRatioAmountIn } from './functions/calculate-ratio-amount-in';
 import {
   CandidatePoolsBySelectionCriteria,
-  getV2CandidatePools,
   getV3CandidatePools,
-  PoolId,
-  V2CandidatePools,
   V3CandidatePools
 } from './functions/get-candidate-pools';
 import {
@@ -1026,18 +1023,6 @@ export class AlphaRouter
     const tokenIn = currencyIn.wrapped;
     const tokenOut = currencyOut.wrapped;
 
-    // metric.setProperty('chainId', this.chainId);
-    // metric.setProperty('pair', `${tokenIn.symbol}/${tokenOut.symbol}`);
-    // metric.setProperty('tokenIn', tokenIn.address);
-    // metric.setProperty('tokenOut', tokenOut.address);
-    // metric.setProperty('tradeType', tradeType === TradeType.EXACT_INPUT ? 'ExactIn' : 'ExactOut');
-
-    // metric.putMetric(
-    //   `QuoteRequestedForChain${this.chainId}`,
-    //   1,
-    //   MetricLoggerUnit.Count
-    // );
-
     // Get a block number to specify in all our calls. Ensures data we fetch from chain is
     // from the same block.
     const blockNumber = partialRoutingConfig.blockNumber ?? this.getBlockNumberPromise();
@@ -1058,7 +1043,6 @@ export class AlphaRouter
       log.warn(`Finalized routing config is ${JSON.stringify(routingConfig)}`);
     }
 
-    //500毫秒 15秒缓存 可以启动job处理 耗时可以降到0
     console.log("before gaspricewei: " + (Date.now() - start))
     const gasPriceWei = await this.getGasPriceWei();
     console.log("after  gaspricewei: " + (Date.now() - start))
@@ -1070,7 +1054,6 @@ export class AlphaRouter
       additionalGasOverhead: NATIVE_OVERHEAD(this.chainId, amount.currency, quoteCurrency),
     };
 
-    //4秒
     console.log("before gas model: " + (Date.now() - start))
     const [v3GasModel, mixedRouteGasModel] = await this.getGasModels(
       gasPriceWei,
@@ -1106,52 +1089,6 @@ export class AlphaRouter
       );
     }
 
-    // metric.putMetric(
-    //   routingConfig.useCachedRoutes ? 'GetQuoteUsingCachedRoutes' : 'GetQuoteNotUsingCachedRoutes',
-    //   1,
-    //   MetricLoggerUnit.Count
-    // );
-
-    // if (cacheMode && routingConfig.useCachedRoutes && cacheMode !== CacheMode.Darkmode && !cachedRoutes) {
-    //   metric.putMetric(
-    //     `GetCachedRoute_miss_${cacheMode}`,
-    //     1,
-    //     MetricLoggerUnit.Count
-    //   );
-    //   log.info(
-    //     {
-    //       tokenIn: tokenIn.symbol,
-    //       tokenInAddress: tokenIn.address,
-    //       tokenOut: tokenOut.symbol,
-    //       tokenOutAddress: tokenOut.address,
-    //       cacheMode,
-    //       amount: amount.toExact(),
-    //       chainId: this.chainId,
-    //       tradeType: this.tradeTypeStr(tradeType)
-    //     },
-    //     `GetCachedRoute miss ${cacheMode} for ${this.tokenPairSymbolTradeTypeChainId(tokenIn, tokenOut, tradeType)}`
-    //   );
-    // } else if (cachedRoutes && routingConfig.useCachedRoutes) {
-    //   metric.putMetric(
-    //     `GetCachedRoute_hit_${cacheMode}`,
-    //     1,
-    //     MetricLoggerUnit.Count
-    //   );
-    //   log.info(
-    //     {
-    //       tokenIn: tokenIn.symbol,
-    //       tokenInAddress: tokenIn.address,
-    //       tokenOut: tokenOut.symbol,
-    //       tokenOutAddress: tokenOut.address,
-    //       cacheMode,
-    //       amount: amount.toExact(),
-    //       chainId: this.chainId,
-    //       tradeType: this.tradeTypeStr(tradeType)
-    //     },
-    //     `GetCachedRoute hit ${cacheMode} for ${this.tokenPairSymbolTradeTypeChainId(tokenIn, tokenOut, tradeType)}`
-    //   );
-    // }
-
     let swapRouteFromCachePromise: Promise<BestSwapRoute | null> = Promise.resolve(null);
     if (cachedRoutes) {
       console.log("swapRouteFromCachePromise")
@@ -1180,8 +1117,6 @@ export class AlphaRouter
         tradeType,
         routingConfig,
         v3GasModel,
-        mixedRouteGasModel,
-        gasPriceWei,
         swapConfig
       );
     }
@@ -1203,49 +1138,6 @@ export class AlphaRouter
       log.info(`CacheMode is ${cacheMode}, and we are using materialized swapRoute`);
       swapRouteRaw = swapRouteFromChain;
     }
-
-    // if (cacheMode === CacheMode.Tapcompare && swapRouteFromCache && swapRouteFromChain) {
-    //   const quoteDiff = swapRouteFromChain.quote.subtract(swapRouteFromCache.quote);
-    //   const quoteGasAdjustedDiff = swapRouteFromChain.quoteGasAdjusted.subtract(swapRouteFromCache.quoteGasAdjusted);
-    //   const gasUsedDiff = swapRouteFromChain.estimatedGasUsed.sub(swapRouteFromCache.estimatedGasUsed);
-
-    //   // Only log if quoteDiff is different from 0, or if quoteGasAdjustedDiff and gasUsedDiff are both different from 0
-    //   if (!quoteDiff.equalTo(0) || !(quoteGasAdjustedDiff.equalTo(0) || gasUsedDiff.eq(0))) {
-    //     // Calculates the percentage of the difference with respect to the quoteFromChain (not from cache)
-    //     const misquotePercent = quoteGasAdjustedDiff.divide(swapRouteFromChain.quoteGasAdjusted).multiply(100);
-
-    //     metric.putMetric(
-    //       `TapcompareCachedRoute_quoteGasAdjustedDiffPercent`,
-    //       Number(misquotePercent.toExact()),
-    //       MetricLoggerUnit.Percent
-    //     );
-
-    //     log.warn(
-    //       {
-    //         quoteFromChain: swapRouteFromChain.quote.toExact(),
-    //         quoteFromCache: swapRouteFromCache.quote.toExact(),
-    //         quoteDiff: quoteDiff.toExact(),
-    //         quoteGasAdjustedFromChain: swapRouteFromChain.quoteGasAdjusted.toExact(),
-    //         quoteGasAdjustedFromCache: swapRouteFromCache.quoteGasAdjusted.toExact(),
-    //         quoteGasAdjustedDiff: quoteGasAdjustedDiff.toExact(),
-    //         gasUsedFromChain: swapRouteFromChain.estimatedGasUsed.toString(),
-    //         gasUsedFromCache: swapRouteFromCache.estimatedGasUsed.toString(),
-    //         gasUsedDiff: gasUsedDiff.toString(),
-    //         routesFromChain: swapRouteFromChain.routes.toString(),
-    //         routesFromCache: swapRouteFromCache.routes.toString(),
-    //         amount: amount.toExact(),
-    //         originalAmount: cachedRoutes?.originalAmount,
-    //         pair: this.tokenPairSymbolTradeTypeChainId(tokenIn, tokenOut, tradeType),
-    //         blockNumber
-    //       },
-    //       `Comparing quotes between Chain and Cache for ${this.tokenPairSymbolTradeTypeChainId(
-    //         tokenIn,
-    //         tokenOut,
-    //         tradeType
-    //       )}`
-    //     );
-    //   }
-    // }
 
     if (!swapRouteRaw) {
       return null;
@@ -1577,8 +1469,6 @@ export class AlphaRouter
     tradeType: TradeType,
     routingConfig: AlphaRouterConfig,
     v3GasModel: IGasModel<V3RouteWithValidQuote>,
-    mixedRouteGasModel: IGasModel<MixedRouteWithValidQuote>,
-    gasPriceWei: BigNumber,
     swapConfig?: SwapOptions,
   ): Promise<BestSwapRoute | null> {
     // Generate our distribution of amounts, i.e. fractions of the input amount.
@@ -1588,7 +1478,7 @@ export class AlphaRouter
 
     const noProtocolsSpecified = protocols.length === 0;
     const v3ProtocolSpecified = protocols.includes(Protocol.V3);
-    const v2ProtocolSpecified = protocols.includes(Protocol.V2);
+    //const v2ProtocolSpecified = protocols.includes(Protocol.V2);
     const v2SupportedInChain = V2_SUPPORTED.includes(this.chainId);
     const shouldQueryMixedProtocol = protocols.includes(Protocol.MIXED) || (noProtocolsSpecified && v2SupportedInChain);
     const mixedProtocolAllowed = [ChainId.MAINNET, ChainId.GOERLI].includes(this.chainId) &&
@@ -1615,32 +1505,7 @@ export class AlphaRouter
       }).then((candidatePools) => {
         console.log("GetV3CandidatePools time: " + (Date.now() - beforeGetCandidates))
         //console.log("v3CandidatePools: " + JSON.stringify(candidatePools));
-        metric.putMetric('GetV3CandidatePools', Date.now() - beforeGetCandidates, MetricLoggerUnit.Milliseconds);
-        return candidatePools;
-      });
-    }
-
-    let v2CandidatePoolsPromise: Promise<V2CandidatePools | undefined> = Promise.resolve(undefined);
-    if (
-      (v2SupportedInChain && (v2ProtocolSpecified || noProtocolsSpecified)) ||
-      (shouldQueryMixedProtocol && mixedProtocolAllowed)
-    ) {
-      // Fetch all the pools that we will consider routing via. There are thousands
-      // of pools, so we filter them to a set of candidate pools that we expect will
-      // result in good prices.
-      v2CandidatePoolsPromise = getV2CandidatePools({
-        tokenIn,
-        tokenOut,
-        tokenProvider: this.tokenProvider,
-        blockedTokenListProvider: this.blockedTokenListProvider,
-        poolProvider: this.v2PoolProvider,
-        routeType: tradeType,
-        subgraphProvider: this.v2SubgraphProvider,
-        routingConfig,
-        chainId: this.chainId,
-      }).then((candidatePools) => {
-        console.log("GetV2CandidatePools time: " + (Date.now() - beforeGetCandidates))
-        metric.putMetric('GetV2CandidatePools', Date.now() - beforeGetCandidates, MetricLoggerUnit.Milliseconds);
+        //metric.putMetric('GetV3CandidatePools', Date.now() - beforeGetCandidates, MetricLoggerUnit.Milliseconds);
         return candidatePools;
       });
     }
@@ -1679,78 +1544,9 @@ export class AlphaRouter
       );
     }
 
-    // Maybe Quote V2 - if V2 is specified, or no protocol is specified AND v2 is supported in this chain
-    if (v2SupportedInChain && (v2ProtocolSpecified || noProtocolsSpecified)) {
-      log.info({ protocols, tradeType }, 'Routing across V2');
-
-      metric.putMetric('SwapRouteFromChain_V2_GetRoutesThenQuotes_Request', 1, MetricLoggerUnit.Count);
-      const beforeGetRoutesThenQuotes = Date.now();
-
-      quotePromises.push(
-        v2CandidatePoolsPromise.then((v2CandidatePools) =>
-          this.v2Quoter.getRoutesThenQuotes(
-            tokenIn,
-            tokenOut,
-            amount,
-            amounts,
-            percents,
-            quoteToken,
-            v2CandidatePools!,
-            tradeType,
-            routingConfig,
-            undefined,
-            gasPriceWei
-          ).then((result) => {
-            metric.putMetric(
-              `SwapRouteFromChain_V2_GetRoutesThenQuotes_Load`,
-              Date.now() - beforeGetRoutesThenQuotes,
-              MetricLoggerUnit.Milliseconds
-            );
-
-            return result;
-          })
-        )
-      );
-    }
-
-    // Maybe Quote mixed routes
-    // if MixedProtocol is specified or no protocol is specified and v2 is supported AND tradeType is ExactIn
-    // AND is Mainnet or Gorli
-    if (shouldQueryMixedProtocol && mixedProtocolAllowed) {
-      log.info({ protocols, tradeType }, 'Routing across MixedRoutes');
-
-      metric.putMetric('SwapRouteFromChain_Mixed_GetRoutesThenQuotes_Request', 1, MetricLoggerUnit.Count);
-      const beforeGetRoutesThenQuotes = Date.now();
-
-      quotePromises.push(
-        Promise.all([v3CandidatePoolsPromise, v2CandidatePoolsPromise]).then(([v3CandidatePools, v2CandidatePools]) =>
-          this.mixedQuoter.getRoutesThenQuotes(
-            tokenIn,
-            tokenOut,
-            amount,
-            amounts,
-            percents,
-            quoteToken,
-            [v3CandidatePools!, v2CandidatePools!],
-            tradeType,
-            routingConfig,
-            mixedRouteGasModel
-          ).then((result) => {
-            metric.putMetric(
-              `SwapRouteFromChain_Mixed_GetRoutesThenQuotes_Load`,
-              Date.now() - beforeGetRoutesThenQuotes,
-              MetricLoggerUnit.Milliseconds
-            );
-
-            return result;
-          })
-        )
-      );
-    }
-
     const getQuotesResults = await Promise.all(quotePromises);
 
-    //console.log("---: " + (Date.now() - beforeGetCandidates))
+    //console.log("---: " + JSON.stringify(getQuotesResults))
 
     const allRoutesWithValidQuotes: RouteWithValidQuote[] = [];
     const allCandidatePools: CandidatePoolsBySelectionCriteria[] = [];
@@ -1762,8 +1558,10 @@ export class AlphaRouter
     });
 
     if (allRoutesWithValidQuotes.length === 0) {
+      console.log('allRoutesWithValidQuotes Received no valid quotes')
       log.info({ allRoutesWithValidQuotes }, 'Received no valid quotes');
-      return null;
+      throw new Error(`no pair exist`);
+      //return null;
     }
 
     // Given all the quotes for all the amounts for all the routes, find the best combination.
@@ -1779,9 +1577,9 @@ export class AlphaRouter
       swapConfig
     );
 
-    if (bestSwapRoute) {
-      this.emitPoolSelectionMetrics(bestSwapRoute, allCandidatePools);
-    }
+    // if (bestSwapRoute) {
+    //   this.emitPoolSelectionMetrics(bestSwapRoute, allCandidatePools);
+    // }
 
     return bestSwapRoute;
   }
@@ -1975,143 +1773,143 @@ export class AlphaRouter
     };
   }
 
-  private emitPoolSelectionMetrics(
-    swapRouteRaw: {
-      quote: CurrencyAmount;
-      quoteGasAdjusted: CurrencyAmount;
-      routes: RouteWithValidQuote[];
-      estimatedGasUsed: BigNumber;
-    },
-    allPoolsBySelection: CandidatePoolsBySelectionCriteria[]
-  ) {
-    const poolAddressesUsed = new Set<string>();
-    const { routes: routeAmounts } = swapRouteRaw;
-    _(routeAmounts)
-      .flatMap((routeAmount) => {
-        const { poolAddresses } = routeAmount;
-        return poolAddresses;
-      })
-      .forEach((address: string) => {
-        poolAddressesUsed.add(address.toLowerCase());
-      });
+  // private emitPoolSelectionMetrics(
+  //   swapRouteRaw: {
+  //     quote: CurrencyAmount;
+  //     quoteGasAdjusted: CurrencyAmount;
+  //     routes: RouteWithValidQuote[];
+  //     estimatedGasUsed: BigNumber;
+  //   },
+  //   allPoolsBySelection: CandidatePoolsBySelectionCriteria[]
+  // ) {
+  //   const poolAddressesUsed = new Set<string>();
+  //   const { routes: routeAmounts } = swapRouteRaw;
+  //   _(routeAmounts)
+  //     .flatMap((routeAmount) => {
+  //       const { poolAddresses } = routeAmount;
+  //       return poolAddresses;
+  //     })
+  //     .forEach((address: string) => {
+  //       poolAddressesUsed.add(address.toLowerCase());
+  //     });
 
-    for (const poolsBySelection of allPoolsBySelection) {
-      const { protocol } = poolsBySelection;
-      _.forIn(
-        poolsBySelection.selections,
-        (pools: PoolId[], topNSelection: string) => {
-          const topNUsed =
-            _.findLastIndex(pools, (pool) =>
-              poolAddressesUsed.has(pool.id.toLowerCase())
-            ) + 1;
-          metric.putMetric(
-            _.capitalize(`${protocol}${topNSelection}`),
-            topNUsed,
-            MetricLoggerUnit.Count
-          );
-        }
-      );
-    }
+  //   for (const poolsBySelection of allPoolsBySelection) {
+  //     const { protocol } = poolsBySelection;
+  //     _.forIn(
+  //       poolsBySelection.selections,
+  //       (pools: PoolId[], topNSelection: string) => {
+  //         const topNUsed =
+  //           _.findLastIndex(pools, (pool) =>
+  //             poolAddressesUsed.has(pool.id.toLowerCase())
+  //           ) + 1;
+  //         metric.putMetric(
+  //           _.capitalize(`${protocol}${topNSelection}`),
+  //           topNUsed,
+  //           MetricLoggerUnit.Count
+  //         );
+  //       }
+  //     );
+  //   }
 
-    let hasV3Route = false;
-    let hasV2Route = false;
-    let hasMixedRoute = false;
-    for (const routeAmount of routeAmounts) {
-      if (routeAmount.protocol === Protocol.V3) {
-        hasV3Route = true;
-      }
-      if (routeAmount.protocol === Protocol.V2) {
-        hasV2Route = true;
-      }
-      if (routeAmount.protocol === Protocol.MIXED) {
-        hasMixedRoute = true;
-      }
-    }
+  //   let hasV3Route = false;
+  //   let hasV2Route = false;
+  //   let hasMixedRoute = false;
+  //   for (const routeAmount of routeAmounts) {
+  //     if (routeAmount.protocol === Protocol.V3) {
+  //       hasV3Route = true;
+  //     }
+  //     if (routeAmount.protocol === Protocol.V2) {
+  //       hasV2Route = true;
+  //     }
+  //     if (routeAmount.protocol === Protocol.MIXED) {
+  //       hasMixedRoute = true;
+  //     }
+  //   }
 
-    if (hasMixedRoute && (hasV3Route || hasV2Route)) {
-      if (hasV3Route && hasV2Route) {
-        metric.putMetric(
-          `MixedAndV3AndV2SplitRoute`,
-          1,
-          MetricLoggerUnit.Count
-        );
-        metric.putMetric(
-          `MixedAndV3AndV2SplitRouteForChain${this.chainId}`,
-          1,
-          MetricLoggerUnit.Count
-        );
-      } else if (hasV3Route) {
-        metric.putMetric(`MixedAndV3SplitRoute`, 1, MetricLoggerUnit.Count);
-        metric.putMetric(
-          `MixedAndV3SplitRouteForChain${this.chainId}`,
-          1,
-          MetricLoggerUnit.Count
-        );
-      } else if (hasV2Route) {
-        metric.putMetric(`MixedAndV2SplitRoute`, 1, MetricLoggerUnit.Count);
-        metric.putMetric(
-          `MixedAndV2SplitRouteForChain${this.chainId}`,
-          1,
-          MetricLoggerUnit.Count
-        );
-      }
-    } else if (hasV3Route && hasV2Route) {
-      metric.putMetric(`V3AndV2SplitRoute`, 1, MetricLoggerUnit.Count);
-      metric.putMetric(
-        `V3AndV2SplitRouteForChain${this.chainId}`,
-        1,
-        MetricLoggerUnit.Count
-      );
-    } else if (hasMixedRoute) {
-      if (routeAmounts.length > 1) {
-        metric.putMetric(`MixedSplitRoute`, 1, MetricLoggerUnit.Count);
-        metric.putMetric(
-          `MixedSplitRouteForChain${this.chainId}`,
-          1,
-          MetricLoggerUnit.Count
-        );
-      } else {
-        metric.putMetric(`MixedRoute`, 1, MetricLoggerUnit.Count);
-        metric.putMetric(
-          `MixedRouteForChain${this.chainId}`,
-          1,
-          MetricLoggerUnit.Count
-        );
-      }
-    } else if (hasV3Route) {
-      if (routeAmounts.length > 1) {
-        metric.putMetric(`V3SplitRoute`, 1, MetricLoggerUnit.Count);
-        metric.putMetric(
-          `V3SplitRouteForChain${this.chainId}`,
-          1,
-          MetricLoggerUnit.Count
-        );
-      } else {
-        metric.putMetric(`V3Route`, 1, MetricLoggerUnit.Count);
-        metric.putMetric(
-          `V3RouteForChain${this.chainId}`,
-          1,
-          MetricLoggerUnit.Count
-        );
-      }
-    } else if (hasV2Route) {
-      if (routeAmounts.length > 1) {
-        metric.putMetric(`V2SplitRoute`, 1, MetricLoggerUnit.Count);
-        metric.putMetric(
-          `V2SplitRouteForChain${this.chainId}`,
-          1,
-          MetricLoggerUnit.Count
-        );
-      } else {
-        metric.putMetric(`V2Route`, 1, MetricLoggerUnit.Count);
-        metric.putMetric(
-          `V2RouteForChain${this.chainId}`,
-          1,
-          MetricLoggerUnit.Count
-        );
-      }
-    }
-  }
+  //   if (hasMixedRoute && (hasV3Route || hasV2Route)) {
+  //     if (hasV3Route && hasV2Route) {
+  //       metric.putMetric(
+  //         `MixedAndV3AndV2SplitRoute`,
+  //         1,
+  //         MetricLoggerUnit.Count
+  //       );
+  //       metric.putMetric(
+  //         `MixedAndV3AndV2SplitRouteForChain${this.chainId}`,
+  //         1,
+  //         MetricLoggerUnit.Count
+  //       );
+  //     } else if (hasV3Route) {
+  //       metric.putMetric(`MixedAndV3SplitRoute`, 1, MetricLoggerUnit.Count);
+  //       metric.putMetric(
+  //         `MixedAndV3SplitRouteForChain${this.chainId}`,
+  //         1,
+  //         MetricLoggerUnit.Count
+  //       );
+  //     } else if (hasV2Route) {
+  //       metric.putMetric(`MixedAndV2SplitRoute`, 1, MetricLoggerUnit.Count);
+  //       metric.putMetric(
+  //         `MixedAndV2SplitRouteForChain${this.chainId}`,
+  //         1,
+  //         MetricLoggerUnit.Count
+  //       );
+  //     }
+  //   } else if (hasV3Route && hasV2Route) {
+  //     metric.putMetric(`V3AndV2SplitRoute`, 1, MetricLoggerUnit.Count);
+  //     metric.putMetric(
+  //       `V3AndV2SplitRouteForChain${this.chainId}`,
+  //       1,
+  //       MetricLoggerUnit.Count
+  //     );
+  //   } else if (hasMixedRoute) {
+  //     if (routeAmounts.length > 1) {
+  //       metric.putMetric(`MixedSplitRoute`, 1, MetricLoggerUnit.Count);
+  //       metric.putMetric(
+  //         `MixedSplitRouteForChain${this.chainId}`,
+  //         1,
+  //         MetricLoggerUnit.Count
+  //       );
+  //     } else {
+  //       metric.putMetric(`MixedRoute`, 1, MetricLoggerUnit.Count);
+  //       metric.putMetric(
+  //         `MixedRouteForChain${this.chainId}`,
+  //         1,
+  //         MetricLoggerUnit.Count
+  //       );
+  //     }
+  //   } else if (hasV3Route) {
+  //     if (routeAmounts.length > 1) {
+  //       metric.putMetric(`V3SplitRoute`, 1, MetricLoggerUnit.Count);
+  //       metric.putMetric(
+  //         `V3SplitRouteForChain${this.chainId}`,
+  //         1,
+  //         MetricLoggerUnit.Count
+  //       );
+  //     } else {
+  //       metric.putMetric(`V3Route`, 1, MetricLoggerUnit.Count);
+  //       metric.putMetric(
+  //         `V3RouteForChain${this.chainId}`,
+  //         1,
+  //         MetricLoggerUnit.Count
+  //       );
+  //     }
+  //   } else if (hasV2Route) {
+  //     if (routeAmounts.length > 1) {
+  //       metric.putMetric(`V2SplitRoute`, 1, MetricLoggerUnit.Count);
+  //       metric.putMetric(
+  //         `V2SplitRouteForChain${this.chainId}`,
+  //         1,
+  //         MetricLoggerUnit.Count
+  //       );
+  //     } else {
+  //       metric.putMetric(`V2Route`, 1, MetricLoggerUnit.Count);
+  //       metric.putMetric(
+  //         `V2RouteForChain${this.chainId}`,
+  //         1,
+  //         MetricLoggerUnit.Count
+  //       );
+  //     }
+  //   }
+  // }
 
   private calculateOptimalRatio(
     position: Position,

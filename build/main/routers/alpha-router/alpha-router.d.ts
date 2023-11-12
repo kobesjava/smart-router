@@ -301,7 +301,6 @@ export declare class AlphaRouter implements IRouter<AlphaRouterConfig>, ISwapToR
     private getGasModels;
     private getAmountDistribution;
     private buildSwapAndAddMethodParameters;
-    private emitPoolSelectionMetrics;
     private calculateOptimalRatio;
     userHasSufficientBalance(fromAddress: string, tradeType: TradeType, amount: CurrencyAmount, quote: CurrencyAmount): Promise<boolean>;
     private absoluteValue;

@@ -32,17 +32,19 @@ const app = express()
 const port = 9101
 
 app.get('/router', async (req: any, res: any) => {
-    console.log("request start: " + Date.now())
     try {
+        const start = Date.now()
+        console.log("request start: " + start)
         const chainId: number = Number(req.query.chainId)
         const tokenIn: string = req.query.tokenIn
         const tokenOut: string = req.query.tokenOut
         const amount: number = Number(req.query.amount)
         const route = await getRoute(chainId, tokenIn, tokenOut, amount.toString())
+        console.log("request end: " + (Date.now()-start))
         res.send(route)
     } catch (e) {
         console.log("Exception: " + e)
-        res.send("{}")
+        res.send({code:0,message:""})
     }
 })
 
@@ -51,6 +53,7 @@ app.listen(port, () => {
 })
 
 async function getRoute(chainIdNumb: number, tokenInStr: string, tokenOutStr: string, amountStr: string) {
+    const start = Date.now()
     const chainId = ID_TO_CHAIN_ID(chainIdNumb);
     const chainProvider = ID_TO_PROVIDER(chainId);
     const provider = new JsonRpcProvider(chainProvider, chainId);
@@ -116,35 +119,7 @@ async function getRoute(chainIdNumb: number, tokenInStr: string, tokenOutStr: st
         ),
     });
 
-    //const topNSecondHopForTokenAddress = new MapWithLowerCaseKey();
-    // topNSecondHopForTokenAddressRaw.split(',').forEach((entry) => {
-    //     if (entry != '') {
-    //         const entryParts = entry.split('|');
-    //         if (entryParts.length != 2) {
-    //             throw new Error(
-    //                 'flag --topNSecondHopForTokenAddressRaw must be in format tokenAddress|topN,...');
-    //         }
-    //         const topNForTokenAddress: number = Number(entryParts[1]!);
-    //         topNSecondHopForTokenAddress.set(entryParts[0]!, topNForTokenAddress);
-    //     }
-    // });
-
-    // if ((exactIn && exactOut) || (!exactIn && !exactOut)) {
-    //     throw new Error('Must set either --exactIn or --exactOut.');
-    // }
-
     let protocols: Protocol[] = [TO_PROTOCOL("v3")]//[TO_PROTOCOL("v2"), TO_PROTOCOL("v3"), TO_PROTOCOL("mixed")];
-    // if (protocolsStr) {
-    //     try {
-    //         protocols = _.map(protocolsStr.split(','), (protocolStr) =>
-    //             TO_PROTOCOL(protocolStr)
-    //         );
-    //     } catch (err) {
-    //         throw new Error(
-    //             `Protocols invalid. Valid options: ${Object.values(Protocol)}`
-    //         );
-    //     }
-    // }
 
     // if the tokenIn str is 'ETH' or 'MATIC' or in NATIVE_NAMES_BY_ID
     const tokenIn: Currency = NATIVE_NAMES_BY_ID[chainId]!.includes(tokenInStr)
@@ -159,42 +134,46 @@ async function getRoute(chainIdNumb: number, tokenInStr: string, tokenOutStr: st
             tokenOutStr
         )!;
 
-
-    const start = Date.now()
+    console.log("init end: "+ (Date.now()-start))
     let swapRoutes: SwapRoute | null;
     //if (exactIn) {
     const amountIn = parseAmountWithDecimal(amountStr, tokenIn);
-    swapRoutes = await router.route(
-        amountIn,
-        tokenOut,
-        TradeType.EXACT_INPUT,
-        undefined,
-        {
-            blockNumber: blockNumber,
-            v3PoolSelection: {
-                topN: 3,
-                topNTokenInOut: 2,
-                topNSecondHop: 2,
-                topNWithEachBaseToken: 2,
-                topNWithBaseToken: 6,
-                topNDirectSwaps: 2,
-            },
-            maxSwapsPerPath: 3,
-            minSplits: 1,
-            maxSplits: 3,
-            distributionPercent: 5,
-            protocols,
-            forceCrossProtocol: false,
-            forceMixedRoutes: false,
-            debugRouting: false,
-            enableFeeOnTransferFeeFetching: false
-        }
-    );
-    const end = Date.now()
-    console.log("route end: " + (end - start))
+    
+    try {
+        swapRoutes = await router.route(
+            amountIn,
+            tokenOut,
+            TradeType.EXACT_INPUT,
+            undefined,
+            {
+                blockNumber: blockNumber,
+                v3PoolSelection: {
+                    topN: 3,
+                    topNTokenInOut: 2,
+                    topNSecondHop: 2,
+                    topNWithEachBaseToken: 2,
+                    topNWithBaseToken: 6,
+                    topNDirectSwaps: 2,
+                },
+                maxSwapsPerPath: 3,
+                minSplits: 1,
+                maxSplits: 3,
+                distributionPercent: 5,
+                protocols,
+                forceCrossProtocol: false,
+                forceMixedRoutes: false,
+                debugRouting: false,
+                enableFeeOnTransferFeeFetching: false
+            }
+        );
+    } catch(error:any) {
+        return {code:0,message:error.message}
+    }
+
+    //console.log(swapRoutes)
 
     if (!swapRoutes) {
-        return null;
+        return {code:0,message:"not find route"}
     }
 
     //console.log(JSON.stringify(swapRoutes))
@@ -281,7 +260,7 @@ async function getRoute(chainIdNumb: number, tokenInStr: string, tokenOutStr: st
             }
         }
     }
-    return result
+    return {code:1,data:result}
 }
 
 function sqrtToPrice(sqrt: BigNumber, decimals0: BigNumber, decimals1: BigNumber, token0IsInput = true) {

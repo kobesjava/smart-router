@@ -31,6 +31,11 @@ const express = require('express')
 const app = express()
 const port = 9101
 
+
+app.get('/monitor', (_: any, res: any) => {
+    res.status(200).send()
+})
+
 app.get('/router', async (req: any, res: any) => {
     try {
         const start = Date.now()

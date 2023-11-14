@@ -36,7 +36,7 @@ const express = require('express');
 const app = express();
 const port = 9101;
 app.get('/monitor', (_, res) => {
-    res.status(201).send();
+    res.status(200).send();
 });
 app.get('/router', async (req, res) => {
     try {

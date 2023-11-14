@@ -7,7 +7,6 @@ import _ from 'lodash';
 import { IUniswapV3PoolState__factory } from '../../types/v3/factories/IUniswapV3PoolState__factory';
 import { V3_CORE_FACTORY_ADDRESSES } from '../../util/addresses';
 import { log } from '../../util/log';
-import { poolToString } from '../../util/routes';
 import { IMulticallProvider, Result } from '../multicall-provider';
 import { ProviderConfig } from '../provider';
 
@@ -118,25 +117,21 @@ export class V3PoolProvider implements IV3PoolProvider {
       sortedPoolAddresses.push(poolAddress);
     }
 
-    log.debug(
-      `getPools called with ${tokenPairs.length} token pairs. Deduped down to ${poolAddressSet.size}`
-    );
+    // log.debug(
+    //   `getPools called with ${tokenPairs.length} token pairs. Deduped down to ${poolAddressSet.size}`
+    // );
 
     const [slot0Results, liquidityResults] = await Promise.all([
       this.getPoolsData<ISlot0>(sortedPoolAddresses, 'slot0', providerConfig),
-      this.getPoolsData<[ILiquidity]>(
-        sortedPoolAddresses,
-        'liquidity',
-        providerConfig
-      ),
+      this.getPoolsData<[ILiquidity]>(sortedPoolAddresses, 'liquidity', providerConfig),
     ]);
 
-    log.info(
-      `Got liquidity and slot0s for ${poolAddressSet.size} pools ${providerConfig?.blockNumber
-        ? `as of block: ${providerConfig?.blockNumber}.`
-        : ``
-      }`
-    );
+    // log.info(
+    //   `Got liquidity and slot0s for ${poolAddressSet.size} pools ${providerConfig?.blockNumber
+    //     ? `as of block: ${providerConfig?.blockNumber}.`
+    //     : ``
+    //   }`
+    // );
 
     const poolAddressToPool: { [poolAddress: string]: Pool } = {};
 
@@ -155,9 +150,6 @@ export class V3PoolProvider implements IV3PoolProvider {
       ) {
         const [token0, token1, fee] = sortedTokenPairs[i]!;
         invalidPools.push([token0, token1, fee]);
-
-        //console.log("slot0Result.success: " + slot0Result?.success + " liquidityResult.success: " + liquidityResult?.success + " sqrtPriceX96: ")
-
         continue;
       }
 
@@ -179,22 +171,21 @@ export class V3PoolProvider implements IV3PoolProvider {
       poolAddressToPool[poolAddress] = pool;
     }
 
-    if (invalidPools.length > 0) {
-      log.info(
-        {
-          invalidPools: _.map(
-            invalidPools,
-            ([token0, token1, fee]) =>
-              `${token0.symbol}/${token1.symbol}/${fee / 10000}%`
-          ),
-        },
-        `${invalidPools.length} pools invalid after checking their slot0 and liquidity results. Dropping.`
-      );
-    }
+    // if (invalidPools.length > 0) {
+    //   log.info(
+    //     {
+    //       invalidPools: _.map(
+    //         invalidPools,
+    //         ([token0, token1, fee]) =>
+    //           `${token0.symbol}/${token1.symbol}/${fee / 10000}%`
+    //       ),
+    //     },
+    //     `${invalidPools.length} pools invalid after checking their slot0 and liquidity results. Dropping.`
+    //   );
+    // }
 
-    const poolStrs = _.map(Object.values(poolAddressToPool), poolToString);
-
-    log.debug({ poolStrs }, `Found ${poolStrs.length} valid pools`);
+    //const poolStrs = _.map(Object.values(poolAddressToPool), poolToString);
+    //log.debug({ poolStrs }, `Found ${poolStrs.length} valid pools`);
 
     return {
       getPool: (
@@ -256,8 +247,6 @@ export class V3PoolProvider implements IV3PoolProvider {
         providerConfig,
       });
     }, this.retryOptions);
-
-    //console.log("blockNumber: " + blockNumber + " results: " + JSON.stringify(results))
 
     log.debug(`Pool data fetched as of block ${blockNumber}`);
 

@@ -160,7 +160,7 @@ export async function getHighestLiquidityV3USDPool(
     .value();
 
   if (pools.length == 0) {
-    const message = `Could not find a USD/${wrappedCurrency.symbol} pool for computing gas costs.++++++`;
+    const message = `Could not find a USD/${wrappedCurrency.symbol} pool for computing gas costs.`;
     log.error({ pools }, message);
     throw new Error(message);
   }

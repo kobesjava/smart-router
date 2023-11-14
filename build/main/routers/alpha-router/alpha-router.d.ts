@@ -286,7 +286,7 @@ export declare class AlphaRouter implements IRouter<AlphaRouterConfig>, ISwapToR
     protected routeCachingProvider?: IRouteCachingProvider;
     protected tokenPropertiesProvider: ITokenPropertiesProvider;
     protected portionProvider: IPortionProvider;
-    constructor({ chainId, provider, multicall2Provider, v3PoolProvider, onChainQuoteProvider, v2PoolProvider, v2QuoteProvider, v2SubgraphProvider, tokenProvider, blockedTokenListProvider, v3SubgraphProvider, gasPriceProvider, v3GasModelFactory, v2GasModelFactory, mixedRouteGasModelFactory, swapRouterProvider, optimismGasDataProvider, tokenValidatorProvider, arbitrumGasDataProvider, simulator, routeCachingProvider, tokenPropertiesProvider, portionProvider, }: AlphaRouterParams);
+    constructor({ chainId, provider, multicall2Provider, v3PoolProvider, onChainQuoteProvider, v2PoolProvider, v2QuoteProvider, v2SubgraphProvider, tokenProvider, blockedTokenListProvider, v3SubgraphProvider, gasPriceProvider, v3GasModelFactory, v2GasModelFactory, mixedRouteGasModelFactory, swapRouterProvider, tokenValidatorProvider, simulator, routeCachingProvider, tokenPropertiesProvider, portionProvider, }: AlphaRouterParams);
     routeToRatio(token0Balance: CurrencyAmount, token1Balance: CurrencyAmount, position: Position, swapAndAddConfig: SwapAndAddConfig, swapAndAddOptions?: SwapAndAddOptions, routingConfig?: Partial<AlphaRouterConfig>): Promise<SwapToRatioResponse>;
     /**
      * @inheritdoc IRouter
@@ -304,5 +304,4 @@ export declare class AlphaRouter implements IRouter<AlphaRouterConfig>, ISwapToR
     private calculateOptimalRatio;
     userHasSufficientBalance(fromAddress: string, tradeType: TradeType, amount: CurrencyAmount, quote: CurrencyAmount): Promise<boolean>;
     private absoluteValue;
-    private getBlockNumberPromise;
 }

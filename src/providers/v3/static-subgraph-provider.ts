@@ -6,7 +6,6 @@ import _ from 'lodash';
 
 import { unparseFeeAmount } from '../../util/amounts';
 import { WRAPPED_NATIVE_CURRENCY } from '../../util/chains';
-import { log } from '../../util/log';
 import { ProviderConfig } from '../provider';
 import {
   ARB_ARBITRUM,
@@ -59,11 +58,14 @@ import {
   WBTC_MOONBEAM,
   WBTC_OPTIMISM,
   WBTC_OPTIMISM_GOERLI,
+  WBTC_LINEA,
   WETH_POLYGON,
   WMATIC_POLYGON,
   WMATIC_POLYGON_MUMBAI,
   WXDAI_GNOSIS,
-  USDC_LINEA
+  USDC_LINEA,
+  USDT_LINEA,
+  USDT_LINEA_GOERLI
 } from '../token-provider';
 
 import { IV3PoolProvider } from './pool-provider';
@@ -157,8 +159,8 @@ const BASES_TO_CHECK_TRADES_AGAINST: ChainTokenList = {
   ],
   [ChainId.BASE_GOERLI]: [WRAPPED_NATIVE_CURRENCY[ChainId.BASE_GOERLI]],
   [ChainId.BASE]: [WRAPPED_NATIVE_CURRENCY[ChainId.BASE], USDC_BASE],
-  [ChainId.Linea_GOERLI]: [WRAPPED_NATIVE_CURRENCY[ChainId.Linea_GOERLI], USDC_LINEA_GOERLI],
-  [ChainId.LINEA]: [WRAPPED_NATIVE_CURRENCY[ChainId.LINEA], USDC_LINEA, DAI_LINEA],
+  [ChainId.Linea_GOERLI]: [WRAPPED_NATIVE_CURRENCY[ChainId.Linea_GOERLI], USDC_LINEA_GOERLI, USDT_LINEA_GOERLI],
+  [ChainId.LINEA]: [WRAPPED_NATIVE_CURRENCY[ChainId.LINEA], USDC_LINEA, DAI_LINEA, USDT_LINEA, WBTC_LINEA],
 };
 
 /**
@@ -183,7 +185,7 @@ export class StaticV3SubgraphProvider implements IV3SubgraphProvider {
     tokenOut?: Token,
     providerConfig?: ProviderConfig
   ): Promise<V3SubgraphPool[]> {
-    log.info('In static subgraph provider for V3');
+    //log.info('In static subgraph provider for V3');
     const bases = BASES_TO_CHECK_TRADES_AGAINST[this.chainId];
 
     const basePairs: [Token, Token][] = _.flatMap(
@@ -217,14 +219,17 @@ export class StaticV3SubgraphProvider implements IV3SubgraphProvider {
       })
       .value();
 
-    log.info(
-      `V3 Static subgraph provider about to get ${pairs.length} pools on-chain`
-    );
+    // log.info(
+    //   `V3 Static subgraph provider about to get ${pairs.length} pools on-chain`
+    // );
     const poolAccessor = await this.poolProvider.getPools(
       pairs,
       providerConfig
     );
     const pools = poolAccessor.getAllPools();
+    // for(let pair of pools) {
+    //   console.log(pair.token0.symbol+","+pair.token1.symbol)
+    // }
 
     const poolAddressSet = new Set<string>();
     const subgraphPools: V3SubgraphPool[] = _(pools)

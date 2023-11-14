@@ -1,11 +1,9 @@
 import { BigNumber } from '@ethersproject/bignumber';
 import { BaseProvider, JsonRpcProvider } from '@ethersproject/providers';
-import DEFAULT_TOKEN_LIST from '@uniswap/default-token-list';
 import { Protocol, SwapRouter, Trade, ZERO } from '@uniswap/router-sdk';
 import { ChainId, Currency, Fraction, Token, TradeType } from '@uniswap/sdk-core';
 import { TokenList } from '@uniswap/token-lists';
 import { Pool, Position, SqrtPriceMath, TickMath } from '@uniswap/v3-sdk';
-import retry from 'async-retry';
 import JSBI from 'jsbi';
 import _ from 'lodash';
 import NodeCache from 'node-cache';
@@ -16,9 +14,7 @@ import {
   CachingGasStationProvider,
   CachingTokenProviderWithFallback,
   CachingV2PoolProvider,
-  CachingV2SubgraphProvider,
   CachingV3PoolProvider,
-  CachingV3SubgraphProvider,
   EIP1559GasPriceProvider,
   ETHGasStationInfoProvider,
   IOnChainQuoteProvider,
@@ -36,7 +32,6 @@ import {
   StaticV3SubgraphProvider,
   SwapRouterProvider,
   TokenPropertiesProvider,
-  URISubgraphProvider,
   V2QuoteProvider,
   V2SubgraphProviderWithFallBacks,
   V3SubgraphProviderWithFallBacks,
@@ -55,17 +50,15 @@ import { ITokenValidatorProvider, TokenValidatorProvider } from '../../providers
 import { IV2PoolProvider, V2PoolProvider } from '../../providers/v2/pool-provider';
 import {
   ArbitrumGasData,
-  ArbitrumGasDataProvider,
   IL2GasDataProvider,
   OptimismGasData,
-  OptimismGasDataProvider
 } from '../../providers/v3/gas-data-provider';
 import { IV3PoolProvider, V3PoolProvider } from '../../providers/v3/pool-provider';
 import { IV3SubgraphProvider } from '../../providers/v3/subgraph-provider';
 import { Erc20__factory } from '../../types/other/factories/Erc20__factory';
 import { SWAP_ROUTER_02_ADDRESSES, WRAPPED_NATIVE_CURRENCY } from '../../util';
 import { CurrencyAmount } from '../../util/amounts';
-import { ID_TO_CHAIN_ID, ID_TO_NETWORK_NAME, V2_SUPPORTED } from '../../util/chains';
+import { ID_TO_CHAIN_ID, V2_SUPPORTED } from '../../util/chains';
 import { getHighestLiquidityV3NativePool, getHighestLiquidityV3USDPool } from '../../util/gas-factory-helpers';
 import { log } from '../../util/log';
 import { buildSwapMethodParameters, buildTrade } from '../../util/methodParameters';
@@ -114,6 +107,7 @@ import { V2HeuristicGasModelFactory } from './gas-models/v2/v2-heuristic-gas-mod
 import { NATIVE_OVERHEAD } from './gas-models/v3/gas-costs';
 import { V3HeuristicGasModelFactory } from './gas-models/v3/v3-heuristic-gas-model';
 import { GetQuotesResult, MixedQuoter, V2Quoter, V3Quoter } from './quoters';
+import DEFAULT_TOKEN_LIST from '../../dapdap/default-token-list.json';
 
 
 export type AlphaRouterParams = {
@@ -422,9 +416,7 @@ export class AlphaRouter
     v2GasModelFactory,
     mixedRouteGasModelFactory,
     swapRouterProvider,
-    optimismGasDataProvider,
     tokenValidatorProvider,
-    arbitrumGasDataProvider,
     simulator,
     routeCachingProvider,
     tokenPropertiesProvider,
@@ -617,6 +609,7 @@ export class AlphaRouter
       }
     }
 
+    // remove
     if (tokenValidatorProvider) {
       this.tokenValidatorProvider = tokenValidatorProvider;
     } else if (this.chainId === ChainId.MAINNET) {
@@ -626,6 +619,7 @@ export class AlphaRouter
         new NodeJSCache(new NodeCache({ stdTTL: 30000, useClones: false }))
       );
     }
+
     if (tokenPropertiesProvider) {
       this.tokenPropertiesProvider = tokenPropertiesProvider;
     } else {
@@ -635,6 +629,8 @@ export class AlphaRouter
         new OnChainTokenFeeFetcher(this.chainId, provider)
       )
     }
+
+    // remove maybe
     this.v2PoolProvider =
       v2PoolProvider ??
       new CachingV2PoolProvider(
@@ -652,6 +648,7 @@ export class AlphaRouter
         UNSUPPORTED_TOKENS as TokenList,
         new NodeJSCache(new NodeCache({ stdTTL: 3600, useClones: false }))
       );
+
     this.tokenProvider =
       tokenProvider ??
       new CachingTokenProviderWithFallback(
@@ -666,55 +663,58 @@ export class AlphaRouter
       );
     this.portionProvider = portionProvider ?? new PortionProvider();
 
-    const chainName = ID_TO_NETWORK_NAME(chainId);
-
-    // ipfs urls in the following format: `https://cloudflare-ipfs.com/ipns/api.uniswap.org/v1/pools/${protocol}/${chainName}.json`;
+    //const chainName = ID_TO_NETWORK_NAME(chainId);
     if (v2SubgraphProvider) {
       this.v2SubgraphProvider = v2SubgraphProvider;
     } else {
-      if (chainId == ChainId.Linea_GOERLI) {
-        this.v2SubgraphProvider = new V2SubgraphProviderWithFallBacks([
-          new StaticV2SubgraphProvider(chainId),
-        ]);
-      } else {
-        this.v2SubgraphProvider = new V2SubgraphProviderWithFallBacks([
-          new CachingV2SubgraphProvider(
-            chainId,
-            new URISubgraphProvider(
-              chainId,
-              `https://cloudflare-ipfs.com/ipns/api.uniswap.org/v1/pools/v2/${chainName}.json`,
-              undefined,
-              0
-            ),
-            new NodeJSCache(new NodeCache({ stdTTL: 300, useClones: false }))
-          ),
-          new StaticV2SubgraphProvider(chainId),
-        ]);
-      }
+      this.v2SubgraphProvider = new V2SubgraphProviderWithFallBacks([
+        new StaticV2SubgraphProvider(chainId),
+      ]);
+      // if (chainId == ChainId.Linea_GOERLI || chainId == ChainId.LINEA) {
+      //   this.v2SubgraphProvider = new V2SubgraphProviderWithFallBacks([
+      //     new StaticV2SubgraphProvider(chainId),
+      //   ]);
+      // } else {
+      //   this.v2SubgraphProvider = new V2SubgraphProviderWithFallBacks([
+      //     new CachingV2SubgraphProvider(
+      //       chainId,
+      //       new URISubgraphProvider(
+      //         chainId,
+      //         `https://cloudflare-ipfs.com/ipns/api.uniswap.org/v1/pools/v2/${chainName}.json`,
+      //         undefined,
+      //         0
+      //       ),
+      //       new NodeJSCache(new NodeCache({ stdTTL: 300, useClones: false }))
+      //     ),
+      //     new StaticV2SubgraphProvider(chainId),
+      //   ]);
+      // }
     }
-
     if (v3SubgraphProvider) {
       this.v3SubgraphProvider = v3SubgraphProvider;
     } else {
-      if (chainId == ChainId.Linea_GOERLI) {
-        this.v3SubgraphProvider = new V3SubgraphProviderWithFallBacks([
-          new StaticV3SubgraphProvider(chainId, this.v3PoolProvider),
-        ]);
-      } else {
-        this.v3SubgraphProvider = new V3SubgraphProviderWithFallBacks([
-          new CachingV3SubgraphProvider(
-            chainId,
-            new URISubgraphProvider(
-              chainId,
-              `https://cloudflare-ipfs.com/ipns/api.uniswap.org/v1/pools/v3/${chainName}.json`,
-              undefined,
-              0
-            ),
-            new NodeJSCache(new NodeCache({ stdTTL: 300, useClones: false }))
-          ),
-          new StaticV3SubgraphProvider(chainId, this.v3PoolProvider),
-        ]);
-      }
+      this.v3SubgraphProvider = new V3SubgraphProviderWithFallBacks([
+        new StaticV3SubgraphProvider(chainId, this.v3PoolProvider),
+      ]);
+      // if (chainId == ChainId.Linea_GOERLI) {
+      //   this.v3SubgraphProvider = new V3SubgraphProviderWithFallBacks([
+      //     new StaticV3SubgraphProvider(chainId, this.v3PoolProvider),
+      //   ]);
+      // } else {
+      //   this.v3SubgraphProvider = new V3SubgraphProviderWithFallBacks([
+      //     new CachingV3SubgraphProvider(
+      //       chainId,
+      //       new URISubgraphProvider(
+      //         chainId,
+      //         `https://cloudflare-ipfs.com/ipns/api.uniswap.org/v1/pools/v3/${chainName}.json`,
+      //         undefined,
+      //         0
+      //       ),
+      //       new NodeJSCache(new NodeCache({ stdTTL: 300, useClones: false }))
+      //     ),
+      //     new StaticV3SubgraphProvider(chainId, this.v3PoolProvider),
+      //   ]);
+      // }
     }
 
     let gasPriceProviderInstance: IGasPriceProvider;
@@ -727,7 +727,6 @@ export class AlphaRouter
     } else {
       gasPriceProviderInstance = new ETHGasStationInfoProvider(ETH_GAS_STATION_API_URL);
     }
-
     this.gasPriceProvider =
       gasPriceProvider ??
       new CachingGasStationProvider(
@@ -737,6 +736,7 @@ export class AlphaRouter
           new NodeCache({ stdTTL: 7, useClones: false })
         )
       );
+
     this.v3GasModelFactory =
       v3GasModelFactory ?? new V3HeuristicGasModelFactory();
     this.v2GasModelFactory =
@@ -748,19 +748,19 @@ export class AlphaRouter
       swapRouterProvider ??
       new SwapRouterProvider(this.multicall2Provider, this.chainId);
 
-    if (chainId === ChainId.OPTIMISM || chainId === ChainId.BASE) {
-      this.l2GasDataProvider =
-        optimismGasDataProvider ??
-        new OptimismGasDataProvider(chainId, this.multicall2Provider);
-    }
-    if (
-      chainId === ChainId.ARBITRUM_ONE ||
-      chainId === ChainId.ARBITRUM_GOERLI
-    ) {
-      this.l2GasDataProvider =
-        arbitrumGasDataProvider ??
-        new ArbitrumGasDataProvider(chainId, this.provider);
-    }
+    // if (chainId === ChainId.OPTIMISM || chainId === ChainId.BASE) {
+    //   this.l2GasDataProvider =
+    //     optimismGasDataProvider ??
+    //     new OptimismGasDataProvider(chainId, this.multicall2Provider);
+    // }
+    // if (
+    //   chainId === ChainId.ARBITRUM_ONE ||
+    //   chainId === ChainId.ARBITRUM_GOERLI
+    // ) {
+    //   this.l2GasDataProvider =
+    //     arbitrumGasDataProvider ??
+    //     new ArbitrumGasDataProvider(chainId, this.provider);
+    // }
 
     // Initialize the Quoters.
     // Quoters are an abstraction encapsulating the business logic of fetching routes and quotes.
@@ -1019,14 +1019,9 @@ export class AlphaRouter
     }
 
     const { currencyIn, currencyOut } = this.determineCurrencyInOutFromTradeType(tradeType, amount, quoteCurrency);
-
     const tokenIn = currencyIn.wrapped;
     const tokenOut = currencyOut.wrapped;
-
-    // Get a block number to specify in all our calls. Ensures data we fetch from chain is
-    // from the same block.
-    const blockNumber = partialRoutingConfig.blockNumber ?? this.getBlockNumberPromise();
-
+    const blockNumber = partialRoutingConfig.blockNumber!
     const routingConfig: AlphaRouterConfig = _.merge(
       {
         // These settings could be changed by the partialRoutingConfig
@@ -1039,13 +1034,9 @@ export class AlphaRouter
       { blockNumber }
     );
 
-    if (routingConfig.debugRouting) {
-      log.warn(`Finalized routing config is ${JSON.stringify(routingConfig)}`);
-    }
-
-    console.log("before gaspricewei: " + (Date.now() - start))
+    const startGasgPriceWei = Date.now()
     const gasPriceWei = await this.getGasPriceWei();
-    console.log("after  gaspricewei: " + (Date.now() - start))
+    console.log("gasPricewei: " + (Date.now() - startGasgPriceWei))
 
     const quoteToken = quoteCurrency.wrapped;
     const providerConfig: ProviderConfig = {
@@ -1054,14 +1045,12 @@ export class AlphaRouter
       additionalGasOverhead: NATIVE_OVERHEAD(this.chainId, amount.currency, quoteCurrency),
     };
 
-    console.log("before gas model: " + (Date.now() - start))
     const [v3GasModel, mixedRouteGasModel] = await this.getGasModels(
       gasPriceWei,
       amount.currency.wrapped,
       quoteToken,
       providerConfig
     );
-    console.log("after gas model: " + (Date.now() - start))
 
     // Create a Set to sanitize the protocols input, a Set of undefined becomes an empty set,
     // Then create an Array from the values of that Set.
@@ -1091,7 +1080,6 @@ export class AlphaRouter
 
     let swapRouteFromCachePromise: Promise<BestSwapRoute | null> = Promise.resolve(null);
     if (cachedRoutes) {
-      console.log("swapRouteFromCachePromise")
       swapRouteFromCachePromise = this.getSwapRouteFromCache(
         cachedRoutes,
         await blockNumber,
@@ -1121,21 +1109,22 @@ export class AlphaRouter
       );
     }
 
-    console.log("before route: " + (Date.now() - start))
+    const startRoute = Date.now()
     const [swapRouteFromCache, swapRouteFromChain] = await Promise.all([
       swapRouteFromCachePromise,
       swapRouteFromChainPromise
     ]);
-    console.log("after route: " + (Date.now() - start))
+    console.log("routeFromCacheOrChain: " + (Date.now() - startRoute))
 
     let swapRouteRaw: BestSwapRoute | null;
     let hitsCachedRoute = false;
     if (cacheMode === CacheMode.Livemode && swapRouteFromCache) {
-      log.info(`CacheMode is ${cacheMode}, and we are using swapRoute from cache`);
+      console.log(`CacheMode is ${cacheMode}, and we are using swapRoute from cache`)
+     //log.info(`CacheMode is ${cacheMode}, and we are using swapRoute from cache`);
       hitsCachedRoute = true;
       swapRouteRaw = swapRouteFromCache;
     } else {
-      log.info(`CacheMode is ${cacheMode}, and we are using materialized swapRoute`);
+      //log.info(`CacheMode is ${cacheMode}, and we are using materialized swapRoute`);
       swapRouteRaw = swapRouteFromChain;
     }
 
@@ -1174,12 +1163,6 @@ export class AlphaRouter
         // Attempt to insert the entry in cache. This is fire and forget promise.
         // The catch method will prevent any exception from blocking the normal code execution.
         this.routeCachingProvider.setCachedRoute(routesToCache, amount).then((_) => {
-          //const status = success ? 'success' : 'rejected';
-          // metric.putMetric(
-          //   `SetCachedRoute_${status}`,
-          //   1,
-          //   MetricLoggerUnit.Count
-          // );
         }).catch((reason) => {
           log.error(
             {
@@ -1188,28 +1171,9 @@ export class AlphaRouter
             },
             `SetCachedRoute failure`
           );
-
-          // metric.putMetric(
-          //   `SetCachedRoute_failure`,
-          //   1,
-          //   MetricLoggerUnit.Count
-          // );
         });
-      } else {
-        // metric.putMetric(
-        //   `SetCachedRoute_unnecessary`,
-        //   1,
-        //   MetricLoggerUnit.Count
-        // );
       }
     }
-
-
-    // metric.putMetric(
-    //   `QuoteFoundForChain${this.chainId}`,
-    //   1,
-    //   MetricLoggerUnit.Count
-    // );
 
     // Build Trade object that represents the optimal swap.
     const trade = buildTrade<typeof tradeType>(
@@ -1481,8 +1445,7 @@ export class AlphaRouter
     //const v2ProtocolSpecified = protocols.includes(Protocol.V2);
     const v2SupportedInChain = V2_SUPPORTED.includes(this.chainId);
     const shouldQueryMixedProtocol = protocols.includes(Protocol.MIXED) || (noProtocolsSpecified && v2SupportedInChain);
-    const mixedProtocolAllowed = [ChainId.MAINNET, ChainId.GOERLI].includes(this.chainId) &&
-      tradeType === TradeType.EXACT_INPUT;
+    const mixedProtocolAllowed = [ChainId.MAINNET, ChainId.GOERLI].includes(this.chainId) && tradeType === TradeType.EXACT_INPUT;
 
     const beforeGetCandidates = Date.now();
 
@@ -1503,7 +1466,7 @@ export class AlphaRouter
         routingConfig,
         chainId: this.chainId,
       }).then((candidatePools) => {
-        console.log("GetV3CandidatePools time: " + (Date.now() - beforeGetCandidates))
+        console.log("GetV3CandidatePools: " + (Date.now() - beforeGetCandidates))
         //console.log("v3CandidatePools: " + JSON.stringify(candidatePools));
         //metric.putMetric('GetV3CandidatePools', Date.now() - beforeGetCandidates, MetricLoggerUnit.Milliseconds);
         return candidatePools;
@@ -1514,11 +1477,9 @@ export class AlphaRouter
 
     // Maybe Quote V3 - if V3 is specified, or no protocol is specified
     if (v3ProtocolSpecified || noProtocolsSpecified) {
-      log.info({ protocols, tradeType }, 'Routing across V3');
-
-      metric.putMetric('SwapRouteFromChain_V3_GetRoutesThenQuotes_Request', 1, MetricLoggerUnit.Count);
-      const beforeGetRoutesThenQuotes = Date.now();
-
+      //log.info({ protocols, tradeType }, 'Routing across V3');
+      //metric.putMetric('SwapRouteFromChain_V3_GetRoutesThenQuotes_Request', 1, MetricLoggerUnit.Count);
+      //const beforeGetRoutesThenQuotes = Date.now();
       quotePromises.push(
         v3CandidatePoolsPromise.then((v3CandidatePools) =>
           this.v3Quoter.getRoutesThenQuotes(
@@ -1533,11 +1494,11 @@ export class AlphaRouter
             routingConfig,
             v3GasModel
           ).then((result) => {
-            metric.putMetric(
-              `SwapRouteFromChain_V3_GetRoutesThenQuotes_Load`,
-              Date.now() - beforeGetRoutesThenQuotes,
-              MetricLoggerUnit.Milliseconds
-            );
+            // metric.putMetric(
+            //   `SwapRouteFromChain_V3_GetRoutesThenQuotes_Load`,
+            //   Date.now() - beforeGetRoutesThenQuotes,
+            //   MetricLoggerUnit.Milliseconds
+            // );
             return result;
           })
         )
@@ -1545,9 +1506,6 @@ export class AlphaRouter
     }
 
     const getQuotesResults = await Promise.all(quotePromises);
-
-    //console.log("---: " + JSON.stringify(getQuotesResults))
-
     const allRoutesWithValidQuotes: RouteWithValidQuote[] = [];
     const allCandidatePools: CandidatePoolsBySelectionCriteria[] = [];
     getQuotesResults.forEach((getQuoteResult) => {
@@ -1559,7 +1517,7 @@ export class AlphaRouter
 
     if (allRoutesWithValidQuotes.length === 0) {
       console.log('allRoutesWithValidQuotes Received no valid quotes')
-      log.info({ allRoutesWithValidQuotes }, 'Received no valid quotes');
+      //log.info({ allRoutesWithValidQuotes }, 'Received no valid quotes');
       throw new Error(`no pair exist`);
       //return null;
     }
@@ -1608,17 +1566,8 @@ export class AlphaRouter
 
   private async getGasPriceWei(): Promise<BigNumber> {
     // Track how long it takes to resolve this async call.
-    const beforeGasTimestamp = Date.now();
-
     // Get an estimate of the gas price to use when estimating gas cost of different routes.
     const { gasPriceWei } = await this.gasPriceProvider.getGasPrice();
-
-    metric.putMetric(
-      'GasPriceLoad',
-      Date.now() - beforeGasTimestamp,
-      MetricLoggerUnit.Milliseconds
-    );
-
     return gasPriceWei;
   }
 
@@ -1650,14 +1599,12 @@ export class AlphaRouter
       providerConfig
     ) : Promise.resolve(null);
 
-    //1.4秒
-    console.log("before nativePool: " + (Date.now() - beforeGasModel))
     const [usdPool, nativeQuoteTokenV3Pool, nativeAmountTokenV3Pool] = await Promise.all([
       usdPoolPromise,
       nativeQuoteTokenV3PoolPromise,
       nativeAmountTokenV3PoolPromise
     ]);
-    console.log("after nativePool: " + (Date.now() - beforeGasModel))
+    console.log("nativePool: " + (Date.now() - beforeGasModel))
 
     const pools: LiquidityCalculationPools = {
       usdPool: usdPool,
@@ -1686,19 +1633,12 @@ export class AlphaRouter
       providerConfig: providerConfig
     });
 
-    //1.3秒
-    console.log("before model: " + (Date.now() - beforeGasModel))
+    const startGasModel = Date.now()
     const [v3GasModel, mixedRouteGasModel] = await Promise.all([
       v3GasModelPromise,
       mixedRouteGasModelPromise
     ]);
-    console.log("after model: " + (Date.now() - beforeGasModel))
-
-    metric.putMetric(
-      'GasModelCreation',
-      Date.now() - beforeGasModel,
-      MetricLoggerUnit.Milliseconds
-    );
+    console.log("gasModel: " + (Date.now() - startGasModel))
 
     return [v3GasModel, mixedRouteGasModel];
   }
@@ -1717,7 +1657,7 @@ export class AlphaRouter
     for (let i = 1; i <= 100 / distributionPercent; i++) {
       percents.push(i * distributionPercent);
       amounts.push(amount.multiply(new Fraction(i * distributionPercent, 100)));
-      //console.log("percents: " + (i * distributionPercent) + " amounts: " + amount.multiply(new Fraction(i * distributionPercent, 100)).toExact())
+      console.log("percents: " + percents[i-1] + " amounts: " + amounts[i-1]?.toExact())
     }
     return [percents, amounts];
   }
@@ -1980,21 +1920,5 @@ export class AlphaRouter
       ? JSBI.unaryMinus(fraction.denominator)
       : fraction.denominator;
     return new Fraction(numeratorAbs, denominatorAbs);
-  }
-
-  private getBlockNumberPromise(): number | Promise<number> {
-    return retry(
-      async (_b, attempt) => {
-        if (attempt > 1) {
-          log.info(`Get block number attempt ${attempt}`);
-        }
-        return this.provider.getBlockNumber();
-      },
-      {
-        retries: 2,
-        minTimeout: 100,
-        maxTimeout: 1000,
-      }
-    );
   }
 }

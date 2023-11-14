@@ -5,7 +5,6 @@ export * from './util';
 import { Protocol } from '@uniswap/router-sdk';
 import { Currency, TradeType, Token } from '@uniswap/sdk-core';
 import { JsonRpcProvider } from '@ethersproject/providers';
-import DEFAULT_TOKEN_LIST from '@uniswap/default-token-list';
 import { parseUnits } from '@ethersproject/units';
 import BigNumber from 'bignumber.js';
 import _ from 'lodash';
@@ -19,10 +18,13 @@ import {
     NodeJSCache,
     TokenProvider,
     UniswapMulticallProvider, V3RouteWithValidQuote,
-    ID_TO_CHAIN_ID, nativeOnChain, parseAmountWithDecimal, SwapRoute, routeAmountsToString, V3Route
+    ID_TO_CHAIN_ID, nativeOnChain, parseAmountWithDecimal, SwapRoute, routeAmountsToString, V3Route,
+    TokenAccessor,CachingV3PoolProvider,V3PoolProvider
 } from './';
 import { OnChainGasPriceProvider } from './providers/on-chain-gas-price-provider';
 import { LegacyGasPriceProvider } from './providers/legacy-gas-price-provider';
+import DEFAULT_TOKEN_LIST from './dapdap/default-token-list.json';
+import { Pool } from '@uniswap/v3-sdk';
 
 
 const dotenv = require("dotenv")
@@ -30,6 +32,16 @@ dotenv.config()
 const express = require('express')
 const app = express()
 const port = 9101
+const tokenCache = new NodeJSCache<Token>(
+    new NodeCache({ stdTTL: 3600, useClones: false })
+)
+const gasPriceCache = new NodeJSCache<GasPrice>(
+    new NodeCache({ stdTTL: 15, useClones: true })
+)
+
+const poolCache = new NodeJSCache<Pool>(
+    new NodeCache({ stdTTL: 360, useClones: false })
+)
 
 app.get('/router', async (req: any, res: any) => {
     try {
@@ -57,39 +69,17 @@ async function getRoute(chainIdNumb: number, tokenInStr: string, tokenOutStr: st
     const chainId = ID_TO_CHAIN_ID(chainIdNumb);
     const chainProvider = ID_TO_PROVIDER(chainId);
     const provider = new JsonRpcProvider(chainProvider, chainId);
+    
+    const startBlockNum = Date.now()
     const blockNumber = await provider.getBlockNumber();
-    //const recipient = "0x81941c0E31e32FFB8D61D8972a20DAe48bC62d81"
+    console.log("blockNumber: "+(Date.now()-startBlockNum))
 
-    const tokenCache = new NodeJSCache<Token>(
-        new NodeCache({ stdTTL: 3600, useClones: false })
-    );
-
-    let tokenListProvider: CachingTokenListProvider;
-    // if (tokenListURI) {
-    //     tokenListProvider = await CachingTokenListProvider.fromTokenListURI(
-    //         chainId,
-    //         tokenListURI,
-    //         tokenCache
-    //     );
-    // } else {
-    tokenListProvider = await CachingTokenListProvider.fromTokenList(
+    const tokenListProvider = await CachingTokenListProvider.fromTokenList(
         chainId,
         DEFAULT_TOKEN_LIST,
         tokenCache
     );
-    // }
-
-    let multicall2Provider = new UniswapMulticallProvider(chainId, provider, 1_000_000);
-    // switch (chainId) {
-    //     case ChainId.Linea_GOERLI:
-    //         multicall2Provider = new UniswapMulticall3Provider(chainId, provider, 375_000);
-    //         break;
-    //     default:
-    //         multicall2Provider = new UniswapMulticallProvider(chainId, provider, 375_000);
-    //         break;
-    // }
-    //const poolProvider = new V3PoolProvider(chainId, multicall2Provider);
-
+    const multicall2Provider = new UniswapMulticallProvider(chainId, provider, 1_000_000);
     // initialize tokenProvider
     const tokenProviderOnChain = new TokenProvider(chainId, multicall2Provider);
     const tokenProvider = new CachingTokenProviderWithFallback(
@@ -99,47 +89,57 @@ async function getRoute(chainIdNumb: number, tokenInStr: string, tokenOutStr: st
         tokenProviderOnChain
     );
 
-
-    const gasPriceCache = new NodeJSCache<GasPrice>(
-        new NodeCache({ stdTTL: 15, useClones: true })
-    );
-
-    const router = new AlphaRouter({
-        provider,
-        chainId,
-        multicall2Provider: multicall2Provider,
-        gasPriceProvider: new CachingGasStationProvider(
-            chainId,
-            new OnChainGasPriceProvider(
-                chainId,
-                new EIP1559GasPriceProvider(provider),
-                new LegacyGasPriceProvider(provider)
-            ),
-            gasPriceCache
-        ),
-    });
-
-    let protocols: Protocol[] = [TO_PROTOCOL("v3")]//[TO_PROTOCOL("v2"), TO_PROTOCOL("v3"), TO_PROTOCOL("mixed")];
-
-    // if the tokenIn str is 'ETH' or 'MATIC' or in NATIVE_NAMES_BY_ID
-    const tokenIn: Currency = NATIVE_NAMES_BY_ID[chainId]!.includes(tokenInStr)
-        ? nativeOnChain(chainId)
-        : (await tokenProvider.getTokens([tokenInStr])).getTokenByAddress(
-            tokenInStr
-        )!;
-
-    const tokenOut: Currency = NATIVE_NAMES_BY_ID[chainId]!.includes(tokenOutStr)
-        ? nativeOnChain(chainId)
-        : (await tokenProvider.getTokens([tokenOutStr])).getTokenByAddress(
-            tokenOutStr
-        )!;
-
+    const startGetToken = Date.now()
+    const tokenPromises: Promise<TokenAccessor>[] = [];
+    let tokenIn: Currency | undefined
+    let tokenOut: Currency | undefined
+    if (NATIVE_NAMES_BY_ID[chainId]!.includes(tokenInStr)) {
+        tokenIn = nativeOnChain(chainId)
+    } else {
+        tokenPromises.push(tokenProvider.getTokens([tokenInStr]))
+    }
+    if ( NATIVE_NAMES_BY_ID[chainId]!.includes(tokenInStr)) {
+        tokenOut = nativeOnChain(chainId)
+    } else {
+        tokenPromises.push(tokenProvider.getTokens([tokenOutStr]))
+    }
+    const tokenProcess = await Promise.all(tokenPromises);
+    if (tokenIn == undefined) {
+        tokenIn = tokenProcess[0]?.getTokenByAddress(tokenInStr)
+    }
+    if (tokenOut == undefined) {
+        tokenOut = tokenProcess[tokenProcess.length-1]?.getTokenByAddress(tokenOutStr)
+    }
+    if (tokenIn == undefined || tokenOut == undefined) {
+        return {code:0,data:"not find token"}
+    }
+    console.log("getToken: "+(Date.now()-startGetToken))
     console.log("init end: "+ (Date.now()-start))
-    let swapRoutes: SwapRoute | null;
-    //if (exactIn) {
+
+    const protocols: Protocol[] = [TO_PROTOCOL("v3")]//[TO_PROTOCOL("v2"), TO_PROTOCOL("v3"), TO_PROTOCOL("mixed")];
     const amountIn = parseAmountWithDecimal(amountStr, tokenIn);
-    
+    let swapRoutes: SwapRoute | null;
     try {
+        const router = new AlphaRouter({
+            provider,
+            chainId,
+            tokenProvider: tokenProvider,
+            multicall2Provider: multicall2Provider,
+            gasPriceProvider: new CachingGasStationProvider(
+                chainId,
+                new OnChainGasPriceProvider(
+                    chainId,
+                    new EIP1559GasPriceProvider(provider),
+                    new LegacyGasPriceProvider(provider)
+                ),
+                gasPriceCache
+            ),
+            v3PoolProvider: new CachingV3PoolProvider(
+                chainId,
+                new V3PoolProvider(ID_TO_CHAIN_ID(chainId), multicall2Provider),
+                poolCache
+              ),
+        });
         swapRoutes = await router.route(
             amountIn,
             tokenOut,
@@ -170,13 +170,9 @@ async function getRoute(chainIdNumb: number, tokenInStr: string, tokenOutStr: st
         return {code:0,message:error.message}
     }
 
-    //console.log(swapRoutes)
-
     if (!swapRoutes) {
         return {code:0,message:"not find route"}
     }
-
-    //console.log(JSON.stringify(swapRoutes))
 
     let result = {
         "quote": {
@@ -199,6 +195,7 @@ async function getRoute(chainIdNumb: number, tokenInStr: string, tokenOutStr: st
             "route": [] as any[]
         },
     }
+
     const route = swapRoutes.route[0]
     if (route) {
         for (let index in route.tokenPath) {
@@ -260,6 +257,7 @@ async function getRoute(chainIdNumb: number, tokenInStr: string, tokenOutStr: st
             }
         }
     }
+
     return {code:1,data:result}
 }
 

@@ -216,18 +216,17 @@ export async function getV3CandidatePools({
   const tokenInAddress = tokenIn.address.toLowerCase();
   const tokenOutAddress = tokenOut.address.toLowerCase();
 
-  const beforeSubgraphPools = Date.now();
+  //const beforeSubgraphPools = Date.now();
 
-  //console.log("befroe subgraphProvider.getPools")
   const allPools = await subgraphProvider.getPools(tokenIn, tokenOut, {
     blockNumber,
   });
   //console.log("after subgraphProvider.getPools")
 
-  log.info(
-    { samplePools: allPools.slice(0, 3) },
-    'Got all pools from V3 subgraph provider'
-  );
+  // log.info(
+  //   { samplePools: allPools.slice(0, 3) },
+  //   'Got all pools from V3 subgraph provider'
+  // );
 
   // Although this is less of an optimization than the V2 equivalent,
   // save some time copying objects by mutating the underlying pool directly.
@@ -236,11 +235,11 @@ export async function getV3CandidatePools({
     pool.token1.id = pool.token1.id.toLowerCase();
   }
 
-  metric.putMetric(
-    'V3SubgraphPoolsLoad',
-    Date.now() - beforeSubgraphPools,
-    MetricLoggerUnit.Milliseconds
-  );
+  // metric.putMetric(
+  //   'V3SubgraphPoolsLoad',
+  //   Date.now() - beforeSubgraphPools,
+  //   MetricLoggerUnit.Milliseconds
+  // );
 
   const beforePoolsFiltered = Date.now();
 
@@ -265,9 +264,9 @@ export async function getV3CandidatePools({
   // Sort by tvlUSD in descending order
   const subgraphPoolsSorted = filteredPools.sort((a, b) => b.tvlUSD - a.tvlUSD);
 
-  log.info(
-    `After filtering blocked tokens went from ${allPools.length} to ${subgraphPoolsSorted.length}.`
-  );
+  // log.info(
+  //   `After filtering blocked tokens went from ${allPools.length} to ${subgraphPoolsSorted.length}.`
+  // );
 
   const poolAddressesSoFar = new Set<string>();
   const addToAddressSet = (pools: V3SubgraphPool[]) => {
@@ -278,6 +277,7 @@ export async function getV3CandidatePools({
 
   const baseTokens = baseTokensByChain[chainId] ?? [];
 
+  //select pool(base token and tokenIn)
   const topByBaseWithTokenIn = _(baseTokens)
     .flatMap((token: Token) => {
       return _(subgraphPoolsSorted)
@@ -298,6 +298,7 @@ export async function getV3CandidatePools({
     .slice(0, topNWithBaseToken)
     .value();
 
+    //select pool(base token and tokenOut)
   const topByBaseWithTokenOut = _(baseTokens)
     .flatMap((token: Token) => {
       return _(subgraphPoolsSorted)
@@ -318,6 +319,7 @@ export async function getV3CandidatePools({
     .slice(0, topNWithBaseToken)
     .value();
 
+    // select pool(tokenIn and tokenOut)
   let top2DirectSwapPool = _(subgraphPoolsSorted)
     .filter((subgraphPool) => {
       return (
@@ -364,6 +366,7 @@ export async function getV3CandidatePools({
 
   const wrappedNativeAddress = WRAPPED_NATIVE_CURRENCY[chainId]?.address.toLowerCase();
 
+  // select pool(tokenOut and WETH) only 2
   // Main reason we need this is for gas estimates, only needed if token out is not native.
   // We don't check the seen address set because if we've already added pools for getting native quotes
   // theres no need to add more.
@@ -437,6 +440,7 @@ export async function getV3CandidatePools({
 
   addToAddressSet(topByTVLUsingTokenOut);
 
+  //找到topByTVLUsingTokenIn中非tokenIn的那个token,再去subgraphPoolsSorted中找pool
   const topByTVLUsingTokenInSecondHops = _(topByTVLUsingTokenIn)
     .map((subgraphPool) => {
       return tokenInAddress == subgraphPool.token0.id
@@ -460,6 +464,7 @@ export async function getV3CandidatePools({
 
   addToAddressSet(topByTVLUsingTokenInSecondHops);
 
+  //找到topByTVLUsingTokenOut中非tokenOut的那个token,再去subgraphPoolsSorted中找pool
   const topByTVLUsingTokenOutSecondHops = _(topByTVLUsingTokenOut)
     .map((subgraphPool) => {
       return tokenOutAddress == subgraphPool.token0.id

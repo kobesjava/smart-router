@@ -122,20 +122,11 @@ export class CachingTokenListProvider
     tokenList: TokenList,
     tokenCache: ICache<Token>
   ) {
-    const now = Date.now();
-
     const tokenProvider = new CachingTokenListProvider(
       chainId,
       tokenList,
       tokenCache
     );
-
-    metric.putMetric(
-      'TokenListLoad',
-      Date.now() - now,
-      MetricLoggerUnit.Milliseconds
-    );
-
     return tokenProvider;
   }
 

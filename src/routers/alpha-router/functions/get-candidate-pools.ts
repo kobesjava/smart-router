@@ -241,7 +241,7 @@ export async function getV3CandidatePools({
   //   MetricLoggerUnit.Milliseconds
   // );
 
-  const beforePoolsFiltered = Date.now();
+  //const beforePoolsFiltered = Date.now();
 
   // Only consider pools where neither tokens are in the blocked token list.
   let filteredPools: V3SubgraphPool[] = allPools;
@@ -517,26 +517,26 @@ export async function getV3CandidatePools({
     blockNumber,
   });
 
-  const printV3SubgraphPool = (s: V3SubgraphPool) =>
-    `${tokenAccessor.getTokenByAddress(s.token0.id)?.symbol ?? s.token0.id}/${tokenAccessor.getTokenByAddress(s.token1.id)?.symbol ?? s.token1.id
-    }/${s.feeTier}`;
+  // const printV3SubgraphPool = (s: V3SubgraphPool) =>
+  //   `${tokenAccessor.getTokenByAddress(s.token0.id)?.symbol ?? s.token0.id}/${tokenAccessor.getTokenByAddress(s.token1.id)?.symbol ?? s.token1.id
+  //   }/${s.feeTier}`;
 
-  log.info(
-    {
-      topByBaseWithTokenIn: topByBaseWithTokenIn.map(printV3SubgraphPool),
-      topByBaseWithTokenOut: topByBaseWithTokenOut.map(printV3SubgraphPool),
-      topByTVL: topByTVL.map(printV3SubgraphPool),
-      topByTVLUsingTokenIn: topByTVLUsingTokenIn.map(printV3SubgraphPool),
-      topByTVLUsingTokenOut: topByTVLUsingTokenOut.map(printV3SubgraphPool),
-      topByTVLUsingTokenInSecondHops:
-        topByTVLUsingTokenInSecondHops.map(printV3SubgraphPool),
-      topByTVLUsingTokenOutSecondHops:
-        topByTVLUsingTokenOutSecondHops.map(printV3SubgraphPool),
-      top2DirectSwap: top2DirectSwapPool.map(printV3SubgraphPool),
-      top2EthQuotePool: top2EthQuoteTokenPool.map(printV3SubgraphPool),
-    },
-    `V3 Candidate Pools`
-  );
+  // log.info(
+  //   {
+  //     topByBaseWithTokenIn: topByBaseWithTokenIn.map(printV3SubgraphPool),
+  //     topByBaseWithTokenOut: topByBaseWithTokenOut.map(printV3SubgraphPool),
+  //     topByTVL: topByTVL.map(printV3SubgraphPool),
+  //     topByTVLUsingTokenIn: topByTVLUsingTokenIn.map(printV3SubgraphPool),
+  //     topByTVLUsingTokenOut: topByTVLUsingTokenOut.map(printV3SubgraphPool),
+  //     topByTVLUsingTokenInSecondHops:
+  //       topByTVLUsingTokenInSecondHops.map(printV3SubgraphPool),
+  //     topByTVLUsingTokenOutSecondHops:
+  //       topByTVLUsingTokenOutSecondHops.map(printV3SubgraphPool),
+  //     top2DirectSwap: top2DirectSwapPool.map(printV3SubgraphPool),
+  //     top2EthQuotePool: top2EthQuoteTokenPool.map(printV3SubgraphPool),
+  //   },
+  //   `V3 Candidate Pools`
+  // );
 
   const tokenPairsRaw = _.map<
     V3SubgraphPool,
@@ -569,23 +569,23 @@ export async function getV3CandidatePools({
 
   const tokenPairs = _.compact(tokenPairsRaw);
 
-  metric.putMetric(
-    'V3PoolsFilterLoad',
-    Date.now() - beforePoolsFiltered,
-    MetricLoggerUnit.Milliseconds
-  );
+  // metric.putMetric(
+  //   'V3PoolsFilterLoad',
+  //   Date.now() - beforePoolsFiltered,
+  //   MetricLoggerUnit.Milliseconds
+  // );
 
-  const beforePoolsLoad = Date.now();
+  //const beforePoolsLoad = Date.now();
 
   const poolAccessor = await poolProvider.getPools(tokenPairs, {
     blockNumber,
   });
 
-  metric.putMetric(
-    'V3PoolsLoad',
-    Date.now() - beforePoolsLoad,
-    MetricLoggerUnit.Milliseconds
-  );
+  // metric.putMetric(
+  //   'V3PoolsLoad',
+  //   Date.now() - beforePoolsLoad,
+  //   MetricLoggerUnit.Milliseconds
+  // );
 
   const poolsBySelection: CandidatePoolsBySelectionCriteria = {
     protocol: Protocol.V3,
@@ -601,6 +601,10 @@ export async function getV3CandidatePools({
       topByTVLUsingTokenOutSecondHops,
     },
   };
+
+  // console.log("tokenPairs: "+JSON.stringify(tokenPairs))
+  // console.log("allPools: "+JSON.stringify(poolAccessor.getAllPools()))
+  // console.log("subgraphPools: "+JSON.stringify(subgraphPools))
 
   return { poolAccessor, candidatePools: poolsBySelection, subgraphPools };
 }
@@ -655,7 +659,7 @@ export async function getV2CandidatePools({
     MetricLoggerUnit.Milliseconds
   );
 
-  const beforePoolsFiltered = Date.now();
+  //const beforePoolsFiltered = Date.now();
 
   // Sort by pool reserve in descending order.
   const subgraphPoolsSorted = allPoolsRaw.sort((a, b) => b.reserve - a.reserve);
@@ -1082,11 +1086,11 @@ export async function getV2CandidatePools({
 
   const tokenPairs = _.compact(tokenPairsRaw);
 
-  metric.putMetric(
-    'V2PoolsFilterLoad',
-    Date.now() - beforePoolsFiltered,
-    MetricLoggerUnit.Milliseconds
-  );
+  // metric.putMetric(
+  //   'V2PoolsFilterLoad',
+  //   Date.now() - beforePoolsFiltered,
+  //   MetricLoggerUnit.Milliseconds
+  // );
 
   const beforePoolsLoad = Date.now();
 

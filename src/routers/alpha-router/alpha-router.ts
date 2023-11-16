@@ -609,7 +609,6 @@ export class AlphaRouter
       }
     }
 
-    // remove
     if (tokenValidatorProvider) {
       this.tokenValidatorProvider = tokenValidatorProvider;
     } else if (this.chainId === ChainId.MAINNET) {

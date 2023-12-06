@@ -223,6 +223,7 @@ async function getRoute(chainIdNumb: number, tokenInStr: string, tokenOutStr: st
                     "fee": routePool?.fee,
                     "liquidity": routePool?.liquidity.toString(),
                     "sqrtRatioX96": routePool?.sqrtRatioX96.toString(),
+                    "sqrtRatioX96After": "",
                     "token0": {
                         "chainId": routePool?.token0.chainId,
                         "decimals": routePool?.token0.decimals,
@@ -238,7 +239,7 @@ async function getRoute(chainIdNumb: number, tokenInStr: string, tokenOutStr: st
                 }
                 result.quote.route.push(routePoolObj)
 
-                console.log("sqrtRatioX96: " + routePool?.sqrtRatioX96.toString())
+                //console.log("sqrtRatioX96: " + routePool?.sqrtRatioX96.toString())
 
                 if (index == route.route.pools.length - 1) {
                     //price impact
@@ -248,6 +249,7 @@ async function getRoute(chainIdNumb: number, tokenInStr: string, tokenOutStr: st
                         try {
                             const price = sqrtToPrice(new BigNumber(routePool!.sqrtRatioX96.toString()), new BigNumber(routePool!.token0.decimals), new BigNumber(routePool!.token1.decimals), isToken0Input)
                             //console.log('price', price.toString())
+                            routePoolObj.sqrtRatioX96After = route.sqrtPriceX96AfterList[index]!.toString()
                             const priceAfter = sqrtToPrice(new BigNumber(route.sqrtPriceX96AfterList[index]!.toString()), new BigNumber(routePool!.token0.decimals), new BigNumber(routePool!.token1.decimals), isToken0Input)
                             //console.log('priceAfter', priceAfter.toString())
                             const absoluteChange = price.minus(priceAfter)

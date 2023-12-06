@@ -21,7 +21,10 @@ export declare enum ChainName {
     BNB = "bnb-mainnet",
     AVALANCHE = "avalanche-mainnet",
     BASE = "base-mainnet",
-    BASE_GOERLI = "base-goerli"
+    BASE_GOERLI = "base-goerli",
+    Linea_GOERLI = "linea-goerli",
+    Linea = "linea-mainnet",
+    SCROLL = "scroll-mainnet"
 }
 export declare enum NativeCurrencyName {
     ETHER = "ETH",

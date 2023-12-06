@@ -86,6 +86,8 @@ export const ID_TO_CHAIN_ID = (id: number): ChainId => {
       return ChainId.Linea_GOERLI;
     case 59144:
       return ChainId.LINEA;
+    case 534352:
+      return ChainId.SCROLL;
     default:
       throw new Error(`Unknown chain id: ${id}`);
   }
@@ -111,6 +113,7 @@ export enum ChainName {
   BASE_GOERLI = 'base-goerli',
   Linea_GOERLI = 'linea-goerli',
   Linea = 'linea-mainnet',
+  SCROLL = 'scroll-mainnet',
 }
 
 
@@ -196,6 +199,11 @@ export const NATIVE_NAMES_BY_ID: { [chainId: number]: string[] } = {
     'ETH',
     'ETHER',
     '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee',
+  ],
+  [ChainId.SCROLL]: [
+    'ETH',
+    'ETHER',
+    '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee',
   ]
 };
 
@@ -218,6 +226,7 @@ export const NATIVE_CURRENCY: { [chainId: number]: NativeCurrencyName } = {
   [ChainId.BASE]: NativeCurrencyName.ETHER,
   [ChainId.Linea_GOERLI]: NativeCurrencyName.ETHER,
   [ChainId.LINEA]: NativeCurrencyName.ETHER,
+  [ChainId.SCROLL]: NativeCurrencyName.ETHER,
 };
 
 export const ID_TO_NETWORK_NAME = (id: number): ChainName => {
@@ -260,6 +269,8 @@ export const ID_TO_NETWORK_NAME = (id: number): ChainName => {
       return ChainName.Linea_GOERLI;
     case 59144:
       return ChainName.Linea;
+    case 534352:
+      return ChainName.SCROLL;
     default:
       throw new Error(`Unknown chain id: ${id}`);
   }
@@ -303,6 +314,8 @@ export const ID_TO_PROVIDER = (id: ChainId): string => {
       return process.env.JSON_RPC_PROVIDER_LINEA_GORLI!;
     case ChainId.LINEA:
       return process.env.JSON_RPC_PROVIDER_LINEA!;
+    case ChainId.SCROLL:
+      return process.env.JSON_RPC_PROVIDER_SCROLL!;
     default:
       throw new Error(`Chain id: ${id} not supported`);
   }
@@ -440,6 +453,13 @@ export const WRAPPED_NATIVE_CURRENCY: { [chainId in ChainId]: Token } = {
   [ChainId.LINEA]: new Token(
     ChainId.LINEA,
     '0xe5D7C2a44FfDDf6b295A15c148167daaAf5Cf34f',
+    18,
+    'WETH',
+    'Wrapped Ether'
+  ),
+  [ChainId.SCROLL]: new Token(
+    ChainId.SCROLL,
+    '0x5300000000000000000000000000000000000004',
     18,
     'WETH',
     'Wrapped Ether'

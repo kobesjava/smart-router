@@ -5,7 +5,7 @@ import { Options as RetryOptions } from 'async-retry';
 import { MixedRoute, V2Route, V3Route } from '../routers/router';
 import { CurrencyAmount } from '../util/amounts';
 import { Result } from './multicall-provider';
-import { UniswapMulticallProvider } from './multicall-uniswap-provider';
+import { IMulticallProvider } from './multicall-provider';
 import { ProviderConfig } from './provider';
 /**
  * An on chain quote for a swap.
@@ -175,7 +175,7 @@ export declare type BlockNumberConfig = {
 export declare class OnChainQuoteProvider implements IOnChainQuoteProvider {
     protected chainId: ChainId;
     protected provider: BaseProvider;
-    protected multicall2Provider: UniswapMulticallProvider;
+    protected multicall2Provider: IMulticallProvider;
     protected retryOptions: QuoteRetryOptions;
     protected batchParams: BatchParams;
     protected gasErrorFailureOverride: FailureOverrides;
@@ -196,7 +196,7 @@ export declare class OnChainQuoteProvider implements IOnChainQuoteProvider {
      * @param blockNumberConfig Parameters for adjusting which block we get quotes from, and how to handle block header not found errors.
      * @param [quoterAddressOverride] Overrides the address of the quoter contract to use.
      */
-    constructor(chainId: ChainId, provider: BaseProvider, multicall2Provider: UniswapMulticallProvider, retryOptions?: QuoteRetryOptions, batchParams?: BatchParams, gasErrorFailureOverride?: FailureOverrides, successRateFailureOverrides?: FailureOverrides, blockNumberConfig?: BlockNumberConfig, quoterAddressOverride?: string | undefined);
+    constructor(chainId: ChainId, provider: BaseProvider, multicall2Provider: IMulticallProvider, retryOptions?: QuoteRetryOptions, batchParams?: BatchParams, gasErrorFailureOverride?: FailureOverrides, successRateFailureOverrides?: FailureOverrides, blockNumberConfig?: BlockNumberConfig, quoterAddressOverride?: string | undefined);
     private getQuoterAddress;
     getQuotesManyExactIn<TRoute extends V3Route | V2Route | MixedRoute>(amountIns: CurrencyAmount[], routes: TRoute[], providerConfig?: ProviderConfig): Promise<{
         routesWithQuotes: RouteWithQuotes<TRoute>[];

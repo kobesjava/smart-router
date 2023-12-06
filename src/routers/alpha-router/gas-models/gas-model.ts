@@ -39,7 +39,10 @@ import {
   USDT_LINEA_GOERLI,
   DAI_LINEA,
   USDC_LINEA,
-  USDT_LINEA
+  USDT_LINEA,
+  USDC_SCROLL,
+  USDT_SCROLL,
+  DAI_SCROLL
 } from '../../../providers/token-provider';
 import { IV2PoolProvider } from '../../../providers/v2/pool-provider';
 import {
@@ -81,6 +84,7 @@ export const usdGasTokensByChain: { [chainId in ChainId]?: Token[] } = {
   [ChainId.BASE]: [USDC_BASE],
   [ChainId.Linea_GOERLI]: [USDC_LINEA_GOERLI, USDT_LINEA_GOERLI],
   [ChainId.LINEA]: [USDC_LINEA, USDT_LINEA, DAI_LINEA],
+  [ChainId.SCROLL]: [USDC_SCROLL, USDT_SCROLL, DAI_SCROLL],
 };
 
 export type L1ToL2GasCosts = {

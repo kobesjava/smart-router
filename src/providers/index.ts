@@ -36,4 +36,4 @@ export * from './v3/static-subgraph-provider';
 export * from './v3/subgraph-provider';
 export * from './v3/subgraph-provider-with-fallback';
 export * from './v3/uri-subgraph-provider';
-export * from './multicall3-uniswap-provider';
+//export * from './multicall3-uniswap-provider';

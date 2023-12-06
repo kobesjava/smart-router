@@ -93,6 +93,10 @@ export declare const USDT_LINEA: Token;
 export declare const WBTC_LINEA: Token;
 export declare const DAI_LINEA: Token;
 export declare const UNI_LINEA: Token;
+export declare const DAI_SCROLL: Token;
+export declare const WBTC_SCROLL: Token;
+export declare const USDT_SCROLL: Token;
+export declare const USDC_SCROLL: Token;
 export declare class TokenProvider implements ITokenProvider {
     private chainId;
     protected multicall2Provider: IMulticallProvider;

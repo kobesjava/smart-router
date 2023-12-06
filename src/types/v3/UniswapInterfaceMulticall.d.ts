@@ -144,27 +144,6 @@ export class UniswapInterfaceMulticall extends BaseContract {
         })[];
       }
     >;
-
-    blockAndAggregate(
-      calls: { target: string; gasLimit: BigNumberish; callData: BytesLike }[],
-      overrides?: CallOverrides
-    ): Promise<
-      [
-        BigNumber,
-        ([boolean, BigNumber, string] & {
-          success: boolean;
-          gasUsed: BigNumber;
-          returnData: string;
-        })[]
-      ] & {
-        blockNumber: BigNumber;
-        returnData: ([boolean, BigNumber, string] & {
-          success: boolean;
-          gasUsed: BigNumber;
-          returnData: string;
-        })[];
-      }
-    >;
   };
 
   filters: {};

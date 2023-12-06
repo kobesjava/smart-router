@@ -43,7 +43,8 @@ const BASES_TO_CHECK_TRADES_AGAINST: ChainTokenList = {
   [ChainId.BASE_GOERLI]: [],
   [ChainId.BASE]: [],
   [ChainId.Linea_GOERLI]: [],
-  [ChainId.LINEA]: []
+  [ChainId.LINEA]: [],
+  [ChainId.SCROLL]: []
 };
 
 /**

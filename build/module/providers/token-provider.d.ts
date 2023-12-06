@@ -86,6 +86,17 @@ export declare const USDC_MOONBEAM: Token;
 export declare const WGLMR_MOONBEAM: Token;
 export declare const DAI_MOONBEAM: Token;
 export declare const WBTC_MOONBEAM: Token;
+export declare const USDC_LINEA_GOERLI: Token;
+export declare const USDT_LINEA_GOERLI: Token;
+export declare const USDC_LINEA: Token;
+export declare const USDT_LINEA: Token;
+export declare const WBTC_LINEA: Token;
+export declare const DAI_LINEA: Token;
+export declare const UNI_LINEA: Token;
+export declare const DAI_SCROLL: Token;
+export declare const WBTC_SCROLL: Token;
+export declare const USDT_SCROLL: Token;
+export declare const USDC_SCROLL: Token;
 export declare class TokenProvider implements ITokenProvider {
     private chainId;
     protected multicall2Provider: IMulticallProvider;

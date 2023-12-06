@@ -594,6 +594,35 @@ export const UNI_LINEA = new Token(
   'Uniswap'
 );
 
+export const DAI_SCROLL = new Token(
+  ChainId.SCROLL,
+  '0xcA77eB3fEFe3725Dc33bccB54eDEFc3D9f764f97',
+  18,
+  'DAI',
+  'Dai Stablecoin'
+);
+export const WBTC_SCROLL = new Token(
+  ChainId.SCROLL,
+  '0x3C1BCa5a656e69edCD0D4E36BEbb3FcDAcA60Cf1',
+  8,
+  'WBTC',
+  'Wrapped BTC'
+);
+export const USDT_SCROLL = new Token(
+  ChainId.SCROLL,
+  '0xf55BEC9cafDbE8730f096Aa55dad6D22d44099Df',
+  6,
+  'USDT',
+  'Tether USD'
+);
+export const USDC_SCROLL = new Token(
+  ChainId.SCROLL,
+  '0x06eFdBFf2a14a7c8E15944D1F4A48F9F95F663A4',
+  6,
+  'USDC',
+  'USD Coin'
+);
+
 export class TokenProvider implements ITokenProvider {
   constructor(
     private chainId: ChainId,
@@ -795,6 +824,8 @@ export const DAI_ON = (chainId: ChainId): Token => {
       return DAI_AVAX;
     case ChainId.LINEA:
       return DAI_LINEA;
+    case ChainId.SCROLL:
+      return DAI_SCROLL;
     default:
       throw new Error(`Chain id: ${chainId} not supported`);
   }
@@ -818,6 +849,8 @@ export const USDT_ON = (chainId: ChainId): Token => {
       return USDT_LINEA_GOERLI;
     case ChainId.LINEA:
       return USDT_LINEA;
+    case ChainId.SCROLL:
+      return USDT_SCROLL;
     default:
       throw new Error(`Chain id: ${chainId} not supported`);
   }
@@ -859,6 +892,8 @@ export const USDC_ON = (chainId: ChainId): Token => {
       return USDC_LINEA_GOERLI;
     case ChainId.LINEA:
       return USDC_LINEA;
+    case ChainId.SCROLL:
+      return USDC_SCROLL;
     default:
       throw new Error(`Chain id: ${chainId} not supported`);
   }

@@ -22,6 +22,7 @@ export const V3_CORE_FACTORY_ADDRESSES: AddressMap = {
   [ChainId.BASE]: CHAIN_TO_ADDRESSES_MAP[ChainId.BASE].v3CoreFactoryAddress,
   [ChainId.Linea_GOERLI]: CHAIN_TO_ADDRESSES_MAP[ChainId.Linea_GOERLI].v3CoreFactoryAddress,
   [ChainId.LINEA]: CHAIN_TO_ADDRESSES_MAP[ChainId.LINEA].v3CoreFactoryAddress,
+  [ChainId.SCROLL]: CHAIN_TO_ADDRESSES_MAP[ChainId.SCROLL].v3CoreFactoryAddress,
   // TODO: Gnosis + Moonbeam contracts to be deployed
 };
 
@@ -38,6 +39,7 @@ export const QUOTER_V2_ADDRESSES: AddressMap = {
   [ChainId.BASE]: CHAIN_TO_ADDRESSES_MAP[ChainId.BASE].quoterAddress,
   [ChainId.Linea_GOERLI]: CHAIN_TO_ADDRESSES_MAP[ChainId.Linea_GOERLI].quoterAddress,
   [ChainId.LINEA]: CHAIN_TO_ADDRESSES_MAP[ChainId.LINEA].quoterAddress,
+  [ChainId.SCROLL]: CHAIN_TO_ADDRESSES_MAP[ChainId.SCROLL].quoterAddress,
   // TODO: Gnosis + Moonbeam contracts to be deployed
 };
 
@@ -59,6 +61,7 @@ export const UNISWAP_MULTICALL_ADDRESSES: AddressMap = {
   [ChainId.BASE]: CHAIN_TO_ADDRESSES_MAP[ChainId.BASE].multicallAddress,
   [ChainId.Linea_GOERLI]: CHAIN_TO_ADDRESSES_MAP[ChainId.Linea_GOERLI].multicallAddress,
   [ChainId.LINEA]: CHAIN_TO_ADDRESSES_MAP[ChainId.LINEA].multicallAddress,
+  [ChainId.SCROLL]: CHAIN_TO_ADDRESSES_MAP[ChainId.SCROLL].multicallAddress,
   // TODO: Gnosis + Moonbeam contracts to be deployed
 };
 
@@ -104,7 +107,6 @@ export const WETH9: {
     | ChainId.MOONBEAM
     | ChainId.BNB
     | ChainId.AVALANCHE
-    | ChainId.LINEA
   >]: Token;
 } = {
   [ChainId.MAINNET]: new Token(
@@ -173,6 +175,20 @@ export const WETH9: {
   [ChainId.Linea_GOERLI]: new Token(
     ChainId.Linea_GOERLI,
     '0x2C1b868d6596a18e32E61B901E4060C872647b6C',
+    18,
+    'WETH',
+    'Wrapped Ether'
+  ),
+  [ChainId.LINEA]: new Token(
+    ChainId.LINEA,
+    '0xe5D7C2a44FfDDf6b295A15c148167daaAf5Cf34f',
+    18,
+    'WETH',
+    'Wrapped Ether'
+  ),
+  [ChainId.SCROLL]: new Token(
+    ChainId.SCROLL,
+    '0x5300000000000000000000000000000000000004',
     18,
     'WETH',
     'Wrapped Ether'

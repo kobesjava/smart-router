@@ -2,7 +2,7 @@ import { BaseProvider } from '@ethersproject/providers';
 import { Protocol } from '@uniswap/router-sdk';
 import { ChainId, Currency, TradeType } from '@uniswap/sdk-core';
 import { Position } from '@uniswap/v3-sdk';
-import { CacheMode, IOnChainQuoteProvider, IRouteCachingProvider, ISwapRouterProvider, ITokenPropertiesProvider, IV2QuoteProvider, IV2SubgraphProvider, Simulator, UniswapMulticallProvider } from '../../providers';
+import { CacheMode, IOnChainQuoteProvider, IRouteCachingProvider, ISwapRouterProvider, ITokenPropertiesProvider, IV2QuoteProvider, IV2SubgraphProvider, Simulator, IMulticallProvider } from '../../providers';
 import { ITokenListProvider } from '../../providers/caching-token-list-provider';
 import { IGasPriceProvider } from '../../providers/gas-price-provider';
 import { IPortionProvider } from '../../providers/portion-provider';
@@ -29,7 +29,7 @@ export declare type AlphaRouterParams = {
      * The provider to use for making multicalls. Used for getting on-chain data
      * like pools, tokens, quotes in batch.
      */
-    multicall2Provider?: UniswapMulticallProvider;
+    multicall2Provider?: IMulticallProvider;
     /**
      * The provider for getting all pools that exist on V3 from the Subgraph. The pools
      * from this provider are filtered during the algorithm to a set of candidate pools.
@@ -263,7 +263,7 @@ export declare type AlphaRouterConfig = {
 export declare class AlphaRouter implements IRouter<AlphaRouterConfig>, ISwapToRatio<AlphaRouterConfig, SwapAndAddConfig> {
     protected chainId: ChainId;
     protected provider: BaseProvider;
-    protected multicall2Provider: UniswapMulticallProvider;
+    protected multicall2Provider: IMulticallProvider;
     protected v3SubgraphProvider: IV3SubgraphProvider;
     protected v3PoolProvider: IV3PoolProvider;
     protected onChainQuoteProvider: IOnChainQuoteProvider;
@@ -301,7 +301,6 @@ export declare class AlphaRouter implements IRouter<AlphaRouterConfig>, ISwapToR
     private getGasModels;
     private getAmountDistribution;
     private buildSwapAndAddMethodParameters;
-    private emitPoolSelectionMetrics;
     private calculateOptimalRatio;
     userHasSufficientBalance(fromAddress: string, tradeType: TradeType, amount: CurrencyAmount, quote: CurrencyAmount): Promise<boolean>;
     private absoluteValue;
